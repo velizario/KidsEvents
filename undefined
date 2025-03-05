@@ -1,0 +1,27 @@
+import React from "react";
+import EventCard from "@/components/events/EventCard";
+
+export default function EventCardExamples() {
+  return (
+    <div className="p-6 bg-white">
+      <h2 className="text-xl font-bold mb-4">Event Card Examples</h2>
+      <div className="flex flex-wrap gap-6">
+        <EventCard 
+          title="Summer Art Camp" 
+          category="Arts & Crafts"
+          imageUrl="https://images.unsplash.com/photo-1551966775-a4ddc8df052b?w=600&q=80"
+        />
+        <EventCard 
+          title="Junior Soccer League" 
+          category="Sports"
+          imageUrl="https://images.unsplash.com/photo-1596464716127-f2a82984de30?w=600&q=80"
+        />
+        <EventCard 
+          title="Coding for Kids" 
+          category="Education"
+          imageUrl="https://images.unsplash.com/photo-1603354350317-6f7aaa5911c5?w=600&q=80"
+        />
+      </div>
+    </div>
+  );
+}
