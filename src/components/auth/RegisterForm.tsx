@@ -96,7 +96,16 @@ const RegisterForm = ({
       });
 
       onSubmit(data);
-      navigate("/parent/dashboard");
+
+      // Check if using placeholder URL (development mode)
+      if (window.location.hostname.includes("tempolabs.ai")) {
+        navigate("/parent/dashboard");
+      } else {
+        // Show success message instead of redirecting
+        setError(
+          "Registration successful! Please check your email to confirm your account.",
+        );
+      }
     } catch (err) {
       console.error("Registration error:", err);
       setError(
@@ -123,7 +132,16 @@ const RegisterForm = ({
       });
 
       onSubmit(data);
-      navigate("/organizer/dashboard");
+
+      // Check if using placeholder URL (development mode)
+      if (window.location.hostname.includes("tempolabs.ai")) {
+        navigate("/organizer/dashboard");
+      } else {
+        // Show success message instead of redirecting
+        setError(
+          "Registration successful! Please check your email to confirm your account.",
+        );
+      }
     } catch (err) {
       console.error("Registration error:", err);
       setError(
@@ -148,7 +166,9 @@ const RegisterForm = ({
       </div>
 
       {error && (
-        <div className="bg-destructive/10 text-destructive p-3 rounded-md mb-6">
+        <div
+          className={`p-3 rounded-md mb-6 ${error.includes("successful") ? "bg-green-100 text-green-800" : "bg-destructive/10 text-destructive"}`}
+        >
           {error}
         </div>
       )}
