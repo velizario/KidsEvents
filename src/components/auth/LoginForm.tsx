@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
+import { useAuth } from "@/context/AuthContext";
 
 const formSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email address" }),
@@ -44,16 +45,24 @@ const LoginForm = ({ onSubmit = () => {} }: LoginFormProps) => {
     },
   });
 
-  const handleSubmit = (data: LoginFormValues) => {
+  const handleSubmit = async (data: LoginFormValues) => {
     console.log("Login form submitted:", data);
-    // For demo purposes, redirect to dashboard based on email domain
-    // In a real app, this would be handled by authentication logic
-    if (data.email.includes("organizer")) {
-      window.location.replace("/organizer/dashboard");
-    } else {
-      window.location.replace("/parent/dashboard");
+    try {
+      // Use the actual authentication from context
+      const { signIn } = useAuth();
+      await signIn(data.email, data.password);
+
+      // Redirect based on user type
+      if (data.email.includes("organizer")) {
+        window.location.replace("/organizer/dashboard");
+      } else {
+        window.location.replace("/parent/dashboard");
+      }
+      onSubmit(data);
+    } catch (error) {
+      console.error("Login error:", error);
+      // Handle login error
     }
-    onSubmit(data);
   };
 
   return (

@@ -80,7 +80,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           if (user) {
             // Get user profile data
             const type = user.user_metadata?.userType || "parent";
-            const { data: profile } = await supabase
+            const { data: profile, error: profileError } = await supabase
               .from(type === "parent" ? "parents" : "organizers")
               .select("*")
               .eq("id", user.id)
@@ -90,6 +90,64 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
               setUser({ ...profile, id: user.id, userType: type });
               setUserType(type);
               setIsAuthenticated(true);
+            } else {
+              // If profile doesn't exist yet (e.g., after email confirmation), create it
+              console.log("Profile not found, creating from user metadata");
+              const userData = {
+                id: user.id,
+                email: user.email,
+                firstName: user.user_metadata?.firstName || "",
+                lastName: user.user_metadata?.lastName || "",
+                userType: type,
+                phone: user.user_metadata?.phone || "",
+                organizationName: user.user_metadata?.organizationName,
+                contactName: user.user_metadata?.contactName,
+                description: user.user_metadata?.description,
+                website: user.user_metadata?.website,
+              };
+
+              // Create profile in the appropriate table
+              if (type === "parent") {
+                await supabase.from("parents").upsert(
+                  {
+                    id: user.id,
+                    email: user.email,
+                    firstName: userData.firstName,
+                    lastName: userData.lastName,
+                    phone: userData.phone || "",
+                    createdAt: new Date().toISOString(),
+                    updatedAt: new Date().toISOString(),
+                  },
+                  { onConflict: "id" },
+                );
+              } else {
+                await supabase.from("organizers").upsert(
+                  {
+                    id: user.id,
+                    email: user.email,
+                    organizationName: userData.organizationName || "",
+                    contactName: userData.contactName || "",
+                    description: userData.description || "",
+                    phone: userData.phone || "",
+                    createdAt: new Date().toISOString(),
+                    updatedAt: new Date().toISOString(),
+                  },
+                  { onConflict: "id" },
+                );
+              }
+
+              // Fetch the newly created profile
+              const { data: newProfile } = await supabase
+                .from(type === "parent" ? "parents" : "organizers")
+                .select("*")
+                .eq("id", user.id)
+                .single();
+
+              if (newProfile) {
+                setUser({ ...newProfile, id: user.id, userType: type });
+                setUserType(type);
+                setIsAuthenticated(true);
+              }
             }
           }
         } else if (event === "SIGNED_OUT") {
@@ -147,33 +205,43 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
       if (error) throw error;
 
-      // Create profile in the appropriate table
+      // Create profile in the appropriate table with upsert to handle both initial creation and post-confirmation
       if (userData.userType === "parent") {
-        await supabase.from("parents").insert({
-          id: data.user?.id,
-          email,
-          firstName: userData.firstName,
-          lastName: userData.lastName,
-          phone: userData.phone,
-          address: userData.address,
-          city: userData.city,
-          state: userData.state,
-          zipCode: userData.zipCode,
-        });
+        await supabase.from("parents").upsert(
+          {
+            id: data.user?.id,
+            email,
+            firstName: userData.firstName,
+            lastName: userData.lastName,
+            phone: userData.phone,
+            address: userData.address || "",
+            city: userData.city || "",
+            state: userData.state || "",
+            zipCode: userData.zipCode || "",
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          },
+          { onConflict: "id" },
+        );
       } else {
-        await supabase.from("organizers").insert({
-          id: data.user?.id,
-          email,
-          organizationName: (userData as any).organizationName,
-          contactName: (userData as any).contactName,
-          description: (userData as any).description || "",
-          phone: userData.phone,
-          address: userData.address,
-          city: userData.city,
-          state: userData.state,
-          zipCode: userData.zipCode,
-          website: (userData as any).website,
-        });
+        await supabase.from("organizers").upsert(
+          {
+            id: data.user?.id,
+            email,
+            organizationName: (userData as any).organizationName,
+            contactName: (userData as any).contactName,
+            description: (userData as any).description || "",
+            phone: userData.phone,
+            address: userData.address || "",
+            city: userData.city || "",
+            state: userData.state || "",
+            zipCode: userData.zipCode || "",
+            website: (userData as any).website || "",
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          },
+          { onConflict: "id" },
+        );
       }
 
       // For development, auto-confirm the email
