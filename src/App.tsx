@@ -19,10 +19,13 @@ function App() {
             <Route path="/events" element={<EventsList />} />
             <Route path="/events/filters" element={<EventFiltersPage />} />
             <Route path="/login" element={<LoginForm />} />
-            <Route
-              path="/register"
-              element={<RegisterForm userType="parent" />}
-            />
+            <Route path="/register">
+              <Route index element={<RegisterForm userType="parent" />} />
+              <Route
+                path="organizer"
+                element={<RegisterForm userType="organizer" />}
+              />
+            </Route>
             {import.meta.env.VITE_TEMPO === "true" && (
               <Route path="/tempobook/*" element={<div />} />
             )}

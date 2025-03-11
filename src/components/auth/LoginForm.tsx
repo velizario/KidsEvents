@@ -32,10 +32,7 @@ interface LoginFormProps {
   userType?: "parent" | "organizer";
 }
 
-const LoginForm = ({
-  onSubmit = () => {},
-  userType = "parent",
-}: LoginFormProps) => {
+const LoginForm = ({ onSubmit = () => {} }: LoginFormProps) => {
   const [showPassword, setShowPassword] = useState(false);
 
   const form = useForm<LoginFormValues>({
@@ -55,9 +52,7 @@ const LoginForm = ({
   return (
     <div className="w-full max-w-md mx-auto p-6 bg-white rounded-lg shadow-md">
       <div className="text-center mb-6">
-        <h2 className="text-2xl font-bold">
-          {userType === "parent" ? "Parent Login" : "Organizer Login"}
-        </h2>
+        <h2 className="text-2xl font-bold">Login</h2>
         <p className="text-muted-foreground mt-2">
           Welcome back! Please enter your details.
         </p>
@@ -156,7 +151,7 @@ const LoginForm = ({
             <p className="text-sm text-muted-foreground">
               Don't have an account?{" "}
               <Link
-                to={`/register?type=${userType}`}
+                to="/register"
                 className="text-primary font-medium hover:underline"
               >
                 Sign up

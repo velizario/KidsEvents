@@ -194,15 +194,7 @@ function Home() {
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button variant="secondary" size="lg" asChild>
-              <Link to="/register?type=organizer">Register as Organizer</Link>
-            </Button>
-            <Button
-              variant="outline"
-              className="border-white text-white hover:bg-white hover:text-primary"
-              size="lg"
-              asChild
-            >
-              <Link to="/login?type=organizer">Login as Organizer</Link>
+              <Link to="/register/organizer">Register as Organizer</Link>
             </Button>
           </div>
         </div>
@@ -252,7 +244,7 @@ function Home() {
               <ul className="space-y-2">
                 <li>
                   <Link
-                    to="/register?type=organizer"
+                    to="/register/organizer"
                     className="text-muted-foreground hover:text-primary"
                   >
                     List Your Events

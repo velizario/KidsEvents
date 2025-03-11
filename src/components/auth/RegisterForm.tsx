@@ -314,7 +314,7 @@ const RegisterForm = ({
               <p className="text-sm text-muted-foreground">
                 Already have an account?{" "}
                 <Link
-                  to="/login?type=parent"
+                  to="/login"
                   className="text-primary font-medium hover:underline"
                 >
                   Sign in
@@ -513,7 +513,7 @@ const RegisterForm = ({
               <p className="text-sm text-muted-foreground">
                 Already have an account?{" "}
                 <Link
-                  to="/login?type=organizer"
+                  to="/login"
                   className="text-primary font-medium hover:underline"
                 >
                   Sign in
