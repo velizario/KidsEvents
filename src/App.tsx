@@ -5,7 +5,9 @@ import EventsList from "./components/events/EventsList";
 import EventFiltersPage from "./components/events/EventFiltersPage";
 import EventDetails from "./components/events/EventDetails";
 import EventManagement from "./components/events/EventManagement";
+import EventForm from "./components/events/EventForm";
 import RegistrationForm from "./components/registration/RegistrationForm";
+import RegistrationDetails from "./components/registration/RegistrationDetails";
 import LoginForm from "./components/auth/LoginForm";
 import RegisterForm from "./components/auth/RegisterForm";
 import Header from "./components/layout/Header";
@@ -25,6 +27,11 @@ function App() {
             <Route path="/events" element={<EventsList />} />
             <Route path="/events/filters" element={<EventFiltersPage />} />
             <Route path="/events/:eventId" element={<EventDetails />} />
+            <Route path="/events/create" element={<EventForm />} />
+            <Route
+              path="/events/:eventId/edit"
+              element={<EventForm isEditing={true} />}
+            />
             <Route
               path="/events/:eventId/register"
               element={<RegistrationForm />}
@@ -32,6 +39,10 @@ function App() {
             <Route
               path="/events/:eventId/manage"
               element={<EventManagement />}
+            />
+            <Route
+              path="/registrations/:registrationId"
+              element={<RegistrationDetails />}
             />
             <Route path="/login" element={<LoginForm />} />
             <Route path="/register">
