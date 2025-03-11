@@ -48,11 +48,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           if (user) {
             // Get user profile data from the appropriate table
             const type = user.user_metadata?.userType || "parent";
-            const { data: profile } = await supabase
+            console.log(
+              `Fetching profile for user ${user.id} from ${type === "parent" ? "parents" : "organizers"}`,
+            );
+            const { data: profile, error: profileError } = await supabase
               .from(type === "parent" ? "parents" : "organizers")
               .select("*")
               .eq("id", user.id)
               .single();
+
+            if (profileError) {
+              console.error(`Error fetching ${type} profile:`, profileError);
+            }
 
             if (profile) {
               setUser({ ...profile, id: user.id, userType: type });
@@ -80,11 +87,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           if (user) {
             // Get user profile data
             const type = user.user_metadata?.userType || "parent";
+            console.log(
+              `Fetching profile for user ${user.id} from ${type === "parent" ? "parents" : "organizers"}`,
+            );
             const { data: profile, error: profileError } = await supabase
               .from(type === "parent" ? "parents" : "organizers")
               .select("*")
               .eq("id", user.id)
               .single();
+
+            if (profileError) {
+              console.error(`Error fetching ${type} profile:`, profileError);
+            }
 
             if (profile) {
               setUser({ ...profile, id: user.id, userType: type });
