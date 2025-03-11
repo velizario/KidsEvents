@@ -6,6 +6,8 @@ import EventFiltersPage from "./components/events/EventFiltersPage";
 import LoginForm from "./components/auth/LoginForm";
 import RegisterForm from "./components/auth/RegisterForm";
 import Header from "./components/layout/Header";
+import OrganizerDashboard from "./components/dashboard/OrganizerDashboard";
+import ParentDashboard from "./components/dashboard/ParentDashboard";
 import routes from "tempo-routes";
 
 function App() {
@@ -26,6 +28,11 @@ function App() {
                 element={<RegisterForm userType="organizer" />}
               />
             </Route>
+            <Route
+              path="/organizer/dashboard"
+              element={<OrganizerDashboard />}
+            />
+            <Route path="/parent/dashboard" element={<ParentDashboard />} />
             {import.meta.env.VITE_TEMPO === "true" && (
               <Route path="/tempobook/*" element={<div />} />
             )}
