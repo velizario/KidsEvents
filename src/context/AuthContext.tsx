@@ -114,8 +114,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
                     {
                       id: user.id,
                       email: user.email,
-                      firstName: userData.firstName || "",
-                      lastName: userData.lastName || "",
+                      first_name: userData.firstName || "",
+                      last_name: userData.lastName || "",
                       phone: userData.phone || "",
                     },
                     { onConflict: "id" },
@@ -134,10 +134,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
                     {
                       id: user.id,
                       email: user.email,
-                      organizationName: userData.organizationName || "",
-                      contactName: userData.contactName || "",
+                      organization_name: userData.organizationName || "",
+                      contact_name: userData.contactName || "",
                       description: userData.description || "",
                       phone: userData.phone || "",
+                      website: userData.website || "",
                     },
                     { onConflict: "id" },
                   );
@@ -225,11 +226,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           {
             id: data.user?.id,
             email,
-            firstName: userData.firstName,
-            lastName: userData.lastName,
+            first_name: userData.firstName,
+            last_name: userData.lastName,
             phone: userData.phone || "",
-            // Only include fields that exist in the table schema
-            // Remove any fields that might not exist in your actual database
+            // Using snake_case for database column names
           },
           { onConflict: "id" },
         );
@@ -244,12 +244,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
             {
               id: data.user?.id,
               email,
-              organizationName: (userData as any).organizationName || "",
-              contactName: (userData as any).contactName || "",
+              organization_name: (userData as any).organizationName || "",
+              contact_name: (userData as any).contactName || "",
               description: (userData as any).description || "",
               phone: userData.phone || "",
-              // Only include fields that exist in the table schema
-              // Remove any fields that might not exist in your actual database
+              website: (userData as any).website || "",
+              // Using snake_case for database column names
             },
             { onConflict: "id" },
           );
