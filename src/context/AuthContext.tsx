@@ -108,32 +108,46 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
               // Create profile in the appropriate table
               if (type === "parent") {
-                await supabase.from("parents").upsert(
-                  {
-                    id: user.id,
-                    email: user.email,
-                    firstName: userData.firstName,
-                    lastName: userData.lastName,
-                    phone: userData.phone || "",
-                    createdAt: new Date().toISOString(),
-                    updatedAt: new Date().toISOString(),
-                  },
-                  { onConflict: "id" },
-                );
+                const { error: parentError } = await supabase
+                  .from("parents")
+                  .upsert(
+                    {
+                      id: user.id,
+                      email: user.email,
+                      firstName: userData.firstName || "",
+                      lastName: userData.lastName || "",
+                      phone: userData.phone || "",
+                    },
+                    { onConflict: "id" },
+                  );
+
+                if (parentError) {
+                  console.error(
+                    "Error creating parent profile after auth:",
+                    parentError,
+                  );
+                }
               } else {
-                await supabase.from("organizers").upsert(
-                  {
-                    id: user.id,
-                    email: user.email,
-                    organizationName: userData.organizationName || "",
-                    contactName: userData.contactName || "",
-                    description: userData.description || "",
-                    phone: userData.phone || "",
-                    createdAt: new Date().toISOString(),
-                    updatedAt: new Date().toISOString(),
-                  },
-                  { onConflict: "id" },
-                );
+                const { error: organizerError } = await supabase
+                  .from("organizers")
+                  .upsert(
+                    {
+                      id: user.id,
+                      email: user.email,
+                      organizationName: userData.organizationName || "",
+                      contactName: userData.contactName || "",
+                      description: userData.description || "",
+                      phone: userData.phone || "",
+                    },
+                    { onConflict: "id" },
+                  );
+
+                if (organizerError) {
+                  console.error(
+                    "Error creating organizer profile after auth:",
+                    organizerError,
+                  );
+                }
               }
 
               // Fetch the newly created profile
@@ -207,41 +221,42 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
       // Create profile in the appropriate table with upsert to handle both initial creation and post-confirmation
       if (userData.userType === "parent") {
-        await supabase.from("parents").upsert(
+        const { error: parentError } = await supabase.from("parents").upsert(
           {
             id: data.user?.id,
             email,
             firstName: userData.firstName,
             lastName: userData.lastName,
-            phone: userData.phone,
-            address: userData.address || "",
-            city: userData.city || "",
-            state: userData.state || "",
-            zipCode: userData.zipCode || "",
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
+            phone: userData.phone || "",
+            // Only include fields that exist in the table schema
+            // Remove any fields that might not exist in your actual database
           },
           { onConflict: "id" },
         );
+
+        if (parentError) {
+          console.error("Error creating parent profile:", parentError);
+        }
       } else {
-        await supabase.from("organizers").upsert(
-          {
-            id: data.user?.id,
-            email,
-            organizationName: (userData as any).organizationName,
-            contactName: (userData as any).contactName,
-            description: (userData as any).description || "",
-            phone: userData.phone,
-            address: userData.address || "",
-            city: userData.city || "",
-            state: userData.state || "",
-            zipCode: userData.zipCode || "",
-            website: (userData as any).website || "",
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-          },
-          { onConflict: "id" },
-        );
+        const { error: organizerError } = await supabase
+          .from("organizers")
+          .upsert(
+            {
+              id: data.user?.id,
+              email,
+              organizationName: (userData as any).organizationName || "",
+              contactName: (userData as any).contactName || "",
+              description: (userData as any).description || "",
+              phone: userData.phone || "",
+              // Only include fields that exist in the table schema
+              // Remove any fields that might not exist in your actual database
+            },
+            { onConflict: "id" },
+          );
+
+        if (organizerError) {
+          console.error("Error creating organizer profile:", organizerError);
+        }
       }
 
       // For development, auto-confirm the email
