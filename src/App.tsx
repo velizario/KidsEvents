@@ -16,6 +16,7 @@ function App() {
       <div>
         <Header />
         <main>
+          {import.meta.env.VITE_TEMPO === "true" && useRoutes(routes)}
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/events" element={<EventsList />} />
@@ -37,7 +38,6 @@ function App() {
               <Route path="/tempobook/*" element={<div />} />
             )}
           </Routes>
-          {import.meta.env.VITE_TEMPO === "true" && useRoutes(routes)}
         </main>
       </div>
     </Suspense>

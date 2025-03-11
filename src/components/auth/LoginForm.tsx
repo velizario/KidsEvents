@@ -49,9 +49,9 @@ const LoginForm = ({ onSubmit = () => {} }: LoginFormProps) => {
     // For demo purposes, redirect to dashboard based on email domain
     // In a real app, this would be handled by authentication logic
     if (data.email.includes("organizer")) {
-      window.location.href = "/organizer/dashboard";
+      window.location.replace("/organizer/dashboard");
     } else {
-      window.location.href = "/parent/dashboard";
+      window.location.replace("/parent/dashboard");
     }
     onSubmit(data);
   };
