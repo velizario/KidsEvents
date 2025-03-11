@@ -1,5 +1,6 @@
 import React from "react";
 import { Calendar, MapPin, Clock, Users } from "lucide-react";
+import { Link } from "react-router-dom";
 import {
   Card,
   CardContent,
@@ -83,8 +84,8 @@ const EventCard = ({
       </CardContent>
 
       <CardFooter className="p-4 pt-0">
-        <Button className="w-full" onClick={() => onRegister(id)}>
-          Register Now
+        <Button className="w-full" asChild>
+          <Link to={`/events/${id}`}>View Details</Link>
         </Button>
       </CardFooter>
     </Card>
