@@ -1,5 +1,5 @@
 -- Drop and recreate the parents table with the correct schema
-DROP TABLE IF EXISTS parents;
+DROP TABLE IF EXISTS parents CASCADE;
 
 CREATE TABLE parents (
   id UUID PRIMARY KEY REFERENCES auth.users(id),
