@@ -14,6 +14,7 @@ import Header from "./components/layout/Header";
 import OrganizerDashboard from "./components/dashboard/OrganizerDashboard";
 import ParentDashboard from "./components/dashboard/ParentDashboard";
 import routes from "tempo-routes";
+import EventFormWrapper from "./components/events/EventFormWrapper";
 
 function App() {
   return (
@@ -27,10 +28,10 @@ function App() {
             <Route path="/events" element={<EventsList />} />
             <Route path="/events/filters" element={<EventFiltersPage />} />
             <Route path="/events/:eventId" element={<EventDetails />} />
-            <Route path="/events/create" element={<EventForm />} />
+            <Route path="/events/create" element={<EventFormWrapper/>} />
             <Route
               path="/events/:eventId/edit"
-              element={<EventForm isEditing={true} />}
+              element={<EventFormWrapper/>}
             />
             <Route
               path="/events/:eventId/register"

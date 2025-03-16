@@ -14,6 +14,7 @@ const EventFormWrapper = () => {
 
   const handleSubmit = async (data) => {
     try {
+      console.log("Creating event with data:", data);
       setIsSubmitting(true);
       // In a real app, you would get the organizerId from auth context
       // For now, we'll use a mock ID
@@ -33,7 +34,7 @@ const EventFormWrapper = () => {
         capacity: parseInt(data.capacity),
         price: data.isPaid ? data.price : "0",
         isPaid: data.isPaid,
-        status: "active",
+        status: "active" as const,
         imageUrl:
           "https://images.unsplash.com/photo-1472162072942-cd5147eb3902?w=800&q=80",
       };
