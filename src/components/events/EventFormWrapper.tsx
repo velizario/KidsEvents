@@ -27,15 +27,15 @@ const EventFormWrapper = () => {
         date: data.date.toISOString().split("T")[0],
         time: "10:00:00", // Default time if not provided
         location: data.location,
-        ageGroup: data.ageGroups
+        age_group: data.ageGroups
           .map((group) => `${group.minAge}-${group.maxAge}`)
           .join(", "),
         category: data.category,
         capacity: parseInt(data.capacity),
         price: data.isPaid ? data.price : "0",
-        isPaid: data.isPaid,
+        is_paid: data.isPaid,
         status: "active" as const,
-        imageUrl:
+        image_url:
           "https://images.unsplash.com/photo-1472162072942-cd5147eb3902?w=800&q=80",
       };
 

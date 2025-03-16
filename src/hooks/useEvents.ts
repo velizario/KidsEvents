@@ -79,6 +79,7 @@ export const useEvents = () => {
       setLoading(true);
       setError(null);
       const data = await eventAPI.createEvent(organizerId, eventData);
+      console.log("Created event:", data);
       setEvent(data);
       return data;
     } catch (err) {
