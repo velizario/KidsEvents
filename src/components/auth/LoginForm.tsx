@@ -34,6 +34,7 @@ interface LoginFormProps {
 }
 
 const LoginForm = ({ onSubmit = () => {} }: LoginFormProps) => {
+  const { signIn } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
 
   const form = useForm<LoginFormValues>({
@@ -49,10 +50,12 @@ const LoginForm = ({ onSubmit = () => {} }: LoginFormProps) => {
     console.log("Login form submitted:", data);
     try {
       // Use the actual authentication from context
-      const { signIn } = useAuth();
+      console.log("1", data.email);
+
       await signIn(data.email, data.password);
 
       // Redirect based on user type
+      console.log(data.email);
       if (data.email.includes("organizer")) {
         window.location.replace("/organizer/dashboard");
       } else {
