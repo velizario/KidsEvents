@@ -99,7 +99,12 @@ const EventForm = ({
   };
 
   const handleSubmit = (data: EventFormValues) => {
-    onSubmit(data);
+    // Update the ageGroups in the form data before submitting
+    const formData = {
+      ...data,
+      ageGroups: ageGroups,
+    };
+    onSubmit(formData);
   };
 
   return (
