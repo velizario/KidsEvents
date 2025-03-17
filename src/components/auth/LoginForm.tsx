@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Eye, EyeOff, Mail, Lock } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -34,7 +34,8 @@ interface LoginFormProps {
 }
 
 const LoginForm = ({ onSubmit = () => {} }: LoginFormProps) => {
-  const { signIn } = useAuth();
+  const { signIn, userType } = useAuth();
+  const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
 
   const form = useForm<LoginFormValues>({
@@ -52,7 +53,13 @@ const LoginForm = ({ onSubmit = () => {} }: LoginFormProps) => {
       // Use the actual authentication from context
       await signIn(data.email, data.password);
 
-      // Redirect will be handled by the AuthContext after successful login
+      // After successful login, redirect to the appropriate dashboard
+      if (userType === "parent") {
+        navigate("/parent/dashboard");
+      } else if (userType === "organizer") {
+        navigate("/organizer/dashboard");
+      }
+
       onSubmit(data);
     } catch (error) {
       console.error("Login error:", error);
