@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import {
   Plus,
@@ -7,6 +7,7 @@ import {
   Settings,
   ChevronRight,
   Search,
+  Loader,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,55 +20,9 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-
-// Mock data for events
-const events = [
-  {
-    id: "1",
-    title: "Summer Art Camp",
-    date: "July 15-19, 2023",
-    location: "Community Arts Center",
-    registrations: 18,
-    capacity: 25,
-    status: "active",
-  },
-  {
-    id: "2",
-    title: "Junior Soccer League",
-    date: "Every Saturday",
-    location: "City Sports Park",
-    registrations: 24,
-    capacity: 30,
-    status: "active",
-  },
-  {
-    id: "3",
-    title: "Coding for Kids",
-    date: "June 5-26, 2023",
-    location: "Tech Learning Center",
-    registrations: 12,
-    capacity: 15,
-    status: "active",
-  },
-  {
-    id: "4",
-    title: "Music & Movement",
-    date: "Tuesdays & Thursdays",
-    location: "Harmony Music Studio",
-    registrations: 8,
-    capacity: 12,
-    status: "active",
-  },
-  {
-    id: "5",
-    title: "Science Adventure Camp",
-    date: "August 7-11, 2023",
-    location: "Discovery Science Center",
-    registrations: 0,
-    capacity: 20,
-    status: "draft",
-  },
-];
+import { useEvents } from "@/hooks/useEvents";
+import { useAuth } from "@/context/AuthContext";
+import { Event } from "@/types/models";
 
 // Mock data for registrations
 const registrations = [
@@ -116,10 +71,38 @@ const registrations = [
 const OrganizerDashboard = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState("events");
+  const [events, setEvents] = useState<Event[]>([]);
+  const {
+    events: fetchedEvents,
+    loading,
+    error,
+    fetchEventsByOrganizer,
+  } = useEvents();
+  const { user } = useAuth();
+
+  useEffect(() => {
+    const loadOrganizerEvents = async () => {
+      if (user?.id) {
+        try {
+          await fetchEventsByOrganizer(user.id);
+        } catch (err) {
+          console.error("Error fetching organizer events:", err);
+        }
+      }
+    };
+
+    loadOrganizerEvents();
+  }, [user, fetchEventsByOrganizer]);
+
+  useEffect(() => {
+    if (fetchedEvents) {
+      setEvents(fetchedEvents);
+    }
+  }, [fetchedEvents]);
 
   // Filter events based on search query
   const filteredEvents = events.filter((event) =>
-    event.title.toLowerCase().includes(searchQuery.toLowerCase()),
+    event.title?.toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
   // Filter registrations based on search query
@@ -164,7 +147,7 @@ const OrganizerDashboard = () => {
             <CardContent>
               <div className="flex items-center">
                 <Calendar className="h-5 w-5 text-primary mr-2" />
-                <div className="text-2xl font-bold">{events.length}</div>
+                <div className="text-2xl font-bold">{events?.length || 0}</div>
               </div>
             </CardContent>
           </Card>
@@ -191,7 +174,7 @@ const OrganizerDashboard = () => {
               <div className="flex items-center">
                 <Calendar className="h-5 w-5 text-primary mr-2" />
                 <div className="text-2xl font-bold">
-                  {events.filter((e) => e.status === "active").length}
+                  {events?.filter((e) => e.status === "active").length || 0}
                 </div>
               </div>
             </CardContent>
@@ -219,7 +202,27 @@ const OrganizerDashboard = () => {
             </TabsList>
 
             <TabsContent value="events" className="space-y-4">
-              {filteredEvents.length > 0 ? (
+              {loading ? (
+                <div className="flex justify-center items-center py-12 bg-white rounded-lg border border-border">
+                  <Loader className="h-8 w-8 animate-spin text-primary" />
+                  <span className="ml-2">Loading your events...</span>
+                </div>
+              ) : error ? (
+                <div className="text-center py-12 bg-white rounded-lg border border-border">
+                  <h3 className="text-lg font-medium mb-2 text-destructive">
+                    Error loading events
+                  </h3>
+                  <p className="text-muted-foreground mb-4">
+                    There was a problem fetching your events. Please try again
+                    later.
+                  </p>
+                  <Button
+                    onClick={() => user?.id && fetchEventsByOrganizer(user.id)}
+                  >
+                    Retry
+                  </Button>
+                </div>
+              ) : filteredEvents.length > 0 ? (
                 <div className="bg-white rounded-lg border border-border overflow-hidden">
                   <div className="overflow-x-auto">
                     <table className="w-full">
@@ -280,7 +283,7 @@ const OrganizerDashboard = () => {
                             </td>
                             <td className="py-3 px-4 text-right">
                               <Button variant="ghost" size="sm" asChild>
-                                <Link to={`/events/${event.id}`}>
+                                <Link to={`/events/${event.id}/manage`}>
                                   Manage{" "}
                                   <ChevronRight className="h-4 w-4 ml-1" />
                                 </Link>

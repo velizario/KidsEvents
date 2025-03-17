@@ -1,138 +1,59 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import EventCard from "./EventCard";
 import EventFilters from "./EventFilters";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Filter } from "lucide-react";
-
-// Mock data for events
-const allEvents = [
-  {
-    id: "1",
-    title: "Summer Art Camp",
-    description:
-      "A fun-filled week of creative art activities for children to explore their artistic talents.",
-    date: "July 15-19, 2023",
-    time: "9:00 AM - 12:00 PM",
-    location: "Community Arts Center",
-    ageGroup: "7-12 years",
-    category: "Arts & Crafts",
-    imageUrl:
-      "https://images.unsplash.com/photo-1551966775-a4ddc8df052b?w=600&q=80",
-  },
-  {
-    id: "2",
-    title: "Junior Soccer League",
-    description:
-      "Weekly soccer training and matches for kids to develop teamwork and athletic skills.",
-    date: "Every Saturday",
-    time: "10:00 AM - 11:30 AM",
-    location: "City Sports Park",
-    ageGroup: "5-8 years",
-    category: "Sports",
-    imageUrl:
-      "https://images.unsplash.com/photo-1596464716127-f2a82984de30?w=600&q=80",
-  },
-  {
-    id: "3",
-    title: "Coding for Kids",
-    description:
-      "Introduction to programming concepts through fun, interactive projects and games.",
-    date: "June 5-26, 2023",
-    time: "4:00 PM - 5:30 PM",
-    location: "Tech Learning Center",
-    ageGroup: "9-14 years",
-    category: "Education",
-    imageUrl:
-      "https://images.unsplash.com/photo-1603354350317-6f7aaa5911c5?w=600&q=80",
-  },
-  {
-    id: "4",
-    title: "Music & Movement",
-    description:
-      "Early childhood music class combining songs, dance, and instrument exploration.",
-    date: "Tuesdays & Thursdays",
-    time: "10:00 AM - 11:00 AM",
-    location: "Harmony Music Studio",
-    ageGroup: "2-5 years",
-    category: "Music",
-    imageUrl:
-      "https://images.unsplash.com/photo-1445633629932-0029acc44e88?w=600&q=80",
-  },
-  {
-    id: "5",
-    title: "Science Adventure Camp",
-    description:
-      "Hands-on science experiments and outdoor exploration for curious young minds.",
-    date: "August 7-11, 2023",
-    time: "9:00 AM - 3:00 PM",
-    location: "Discovery Science Center",
-    ageGroup: "8-12 years",
-    category: "Education",
-    imageUrl:
-      "https://images.unsplash.com/photo-1530026405186-ed1f139313f8?w=600&q=80",
-  },
-  {
-    id: "6",
-    title: "Ballet for Beginners",
-    description:
-      "Introduction to ballet basics with a focus on fun, movement, and coordination.",
-    date: "Mondays & Wednesdays",
-    time: "3:30 PM - 4:30 PM",
-    location: "Grace Dance Academy",
-    ageGroup: "4-7 years",
-    category: "Arts & Crafts",
-    imageUrl:
-      "https://images.unsplash.com/photo-1595932545692-6cc0e5db9f7f?w=600&q=80",
-  },
-  {
-    id: "7",
-    title: "Wilderness Explorers",
-    description:
-      "Outdoor adventure program teaching survival skills, nature appreciation, and teamwork.",
-    date: "July 24-28, 2023",
-    time: "8:30 AM - 4:00 PM",
-    location: "Pinewood Nature Reserve",
-    ageGroup: "10-15 years",
-    category: "Camps",
-    imageUrl:
-      "https://images.unsplash.com/photo-1517164850305-99a3e65bb47e?w=600&q=80",
-  },
-  {
-    id: "8",
-    title: "Little Chefs Cooking Class",
-    description:
-      "Fun cooking classes where kids learn to make simple, delicious recipes.",
-    date: "Fridays",
-    time: "4:00 PM - 5:30 PM",
-    location: "Culinary Kids Studio",
-    ageGroup: "6-10 years",
-    category: "Education",
-    imageUrl:
-      "https://images.unsplash.com/photo-1577301656525-dced3dbdcb90?w=600&q=80",
-  },
-];
+import { Search, Filter, Loader } from "lucide-react";
+import { useEvents } from "@/hooks/useEvents";
+import { Event } from "@/types/models";
 
 const EventsList = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All Events");
   const [selectedAgeGroup, setSelectedAgeGroup] = useState("All Ages");
   const [showFilters, setShowFilters] = useState(false);
+  const [allEvents, setAllEvents] = useState<Event[]>([]);
+  const { events, loading, error, fetchEvents } = useEvents();
 
-  // Filter events based on search query and filters
+  useEffect(() => {
+    const loadEvents = async () => {
+      try {
+        await fetchEvents({
+          category:
+            selectedCategory !== "All Events" ? selectedCategory : undefined,
+          ageGroup:
+            selectedAgeGroup !== "All Ages" ? selectedAgeGroup : undefined,
+          search: searchQuery || undefined,
+        });
+      } catch (err) {
+        console.error("Error fetching events:", err);
+      }
+    };
+
+    loadEvents();
+  }, [fetchEvents, selectedCategory, selectedAgeGroup, searchQuery]);
+
+  useEffect(() => {
+    if (events) {
+      setAllEvents(events);
+    }
+  }, [events]);
+
+  // Filter events based on search query and filters (client-side filtering as backup)
   const filteredEvents = allEvents.filter((event) => {
     const matchesSearch =
-      event.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      event.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      event.location.toLowerCase().includes(searchQuery.toLowerCase());
+      !searchQuery ||
+      event.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      event.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      event.location?.toLowerCase().includes(searchQuery.toLowerCase());
 
     const matchesCategory =
       selectedCategory === "All Events" || event.category === selectedCategory;
 
-    // Simple age group filtering (in a real app, this would be more sophisticated)
+    // Simple age group filtering
     const matchesAgeGroup =
       selectedAgeGroup === "All Ages" ||
-      event.ageGroup.includes(selectedAgeGroup);
+      (event.ageGroup && event.ageGroup.includes(selectedAgeGroup));
 
     return matchesSearch && matchesCategory && matchesAgeGroup;
   });
@@ -196,7 +117,22 @@ const EventsList = () => {
 
       {/* Events Grid */}
       <div className="container mx-auto px-4 py-8">
-        {filteredEvents.length > 0 ? (
+        {loading ? (
+          <div className="flex justify-center items-center py-12">
+            <Loader className="h-8 w-8 animate-spin text-primary" />
+            <span className="ml-2">Loading events...</span>
+          </div>
+        ) : error ? (
+          <div className="text-center py-12">
+            <h3 className="text-xl font-semibold mb-2 text-destructive">
+              Error loading events
+            </h3>
+            <p className="text-muted-foreground mb-6">
+              There was a problem fetching events. Please try again later.
+            </p>
+            <Button onClick={() => fetchEvents()}>Retry</Button>
+          </div>
+        ) : filteredEvents.length > 0 ? (
           <>
             <div className="mb-6 text-muted-foreground">
               Showing {filteredEvents.length} events
@@ -205,7 +141,15 @@ const EventsList = () => {
               {filteredEvents.map((event) => (
                 <EventCard
                   key={event.id}
-                  {...event}
+                  id={event.id}
+                  title={event.title}
+                  description={event.description}
+                  date={event.date}
+                  time={event.time}
+                  location={event.location}
+                  ageGroup={event.ageGroup}
+                  category={event.category}
+                  imageUrl={event.imageUrl}
                   onRegister={handleRegister}
                 />
               ))}
@@ -222,6 +166,7 @@ const EventsList = () => {
                 setSearchQuery("");
                 setSelectedCategory("All Events");
                 setSelectedAgeGroup("All Ages");
+                fetchEvents();
               }}
             >
               Clear all filters

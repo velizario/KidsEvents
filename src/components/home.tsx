@@ -1,64 +1,11 @@
-import { useState } from "react";
-import { Link } from "react-router-dom";
-import { Search } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { Search, Loader } from "lucide-react";
 import EventCard from "./events/EventCard";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
-
-const featuredEvents = [
-  {
-    id: "1",
-    title: "Summer Art Camp",
-    description:
-      "A fun-filled week of creative art activities for children to explore their artistic talents.",
-    date: "July 15-19, 2023",
-    time: "9:00 AM - 12:00 PM",
-    location: "Community Arts Center",
-    ageGroup: "7-12 years",
-    category: "Arts & Crafts",
-    imageUrl:
-      "https://images.unsplash.com/photo-1551966775-a4ddc8df052b?w=600&q=80",
-  },
-  {
-    id: "2",
-    title: "Junior Soccer League",
-    description:
-      "Weekly soccer training and matches for kids to develop teamwork and athletic skills.",
-    date: "Every Saturday",
-    time: "10:00 AM - 11:30 AM",
-    location: "City Sports Park",
-    ageGroup: "5-8 years",
-    category: "Sports",
-    imageUrl:
-      "https://images.unsplash.com/photo-1596464716127-f2a82984de30?w=600&q=80",
-  },
-  {
-    id: "3",
-    title: "Coding for Kids",
-    description:
-      "Introduction to programming concepts through fun, interactive projects and games.",
-    date: "June 5-26, 2023",
-    time: "4:00 PM - 5:30 PM",
-    location: "Tech Learning Center",
-    ageGroup: "9-14 years",
-    category: "Education",
-    imageUrl:
-      "https://images.unsplash.com/photo-1603354350317-6f7aaa5911c5?w=600&q=80",
-  },
-  {
-    id: "4",
-    title: "Music & Movement",
-    description:
-      "Early childhood music class combining songs, dance, and instrument exploration.",
-    date: "Tuesdays & Thursdays",
-    time: "10:00 AM - 11:00 AM",
-    location: "Harmony Music Studio",
-    ageGroup: "2-5 years",
-    category: "Music",
-    imageUrl:
-      "https://images.unsplash.com/photo-1445633629932-0029acc44e88?w=600&q=80",
-  },
-];
+import { useEvents } from "@/hooks/useEvents";
+import { Event } from "@/types/models";
 
 const categories = [
   { name: "All Events", icon: "🎯" },
@@ -72,6 +19,32 @@ const categories = [
 function Home() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All Events");
+  const [featuredEvents, setFeaturedEvents] = useState<Event[]>([]);
+  const { events, loading, error, fetchEvents } = useEvents();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const loadEvents = async () => {
+      try {
+        await fetchEvents();
+      } catch (err) {
+        console.error("Error fetching events:", err);
+      }
+    };
+
+    loadEvents();
+  }, [fetchEvents]);
+
+  useEffect(() => {
+    if (events && events.length > 0) {
+      // Get up to 4 events for the featured section
+      setFeaturedEvents(events.slice(0, 4));
+    }
+  }, [events]);
+
+  const handleSearch = () => {
+    navigate(`/events?search=${searchQuery}`);
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -99,8 +72,9 @@ function Home() {
               className="flex-grow border-none focus-visible:ring-0"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleSearch()}
             />
-            <Button className="rounded-none">
+            <Button className="rounded-none" onClick={handleSearch}>
               <Search className="h-4 w-4 mr-2" />
               Search
             </Button>
@@ -135,11 +109,42 @@ function Home() {
               <Button variant="outline">View All</Button>
             </Link>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {featuredEvents.map((event) => (
-              <EventCard key={event.id} {...event} />
-            ))}
-          </div>
+
+          {loading ? (
+            <div className="flex justify-center items-center py-12">
+              <Loader className="h-8 w-8 animate-spin text-primary" />
+              <span className="ml-2">Loading events...</span>
+            </div>
+          ) : error ? (
+            <div className="text-center py-12">
+              <p className="text-muted-foreground">
+                There was a problem loading events. Please try again later.
+              </p>
+            </div>
+          ) : featuredEvents.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {featuredEvents.map((event) => (
+                <EventCard
+                  key={event.id}
+                  id={event.id}
+                  title={event.title}
+                  description={event.description}
+                  date={event.date}
+                  time={event.time}
+                  location={event.location}
+                  ageGroup={event.ageGroup}
+                  category={event.category}
+                  imageUrl={event.imageUrl}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-12">
+              <p className="text-muted-foreground">
+                No events found. Check back later for upcoming events!
+              </p>
+            </div>
+          )}
         </div>
       </section>
 

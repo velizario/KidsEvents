@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { Link, useParams, useNavigate } from "react-router-dom";
 import {
   ArrowLeft,
   Calendar,
@@ -8,59 +8,36 @@ import {
   Users,
   Heart,
   Share2,
+  Loader,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-
-// Mock event data
-const eventData = {
-  id: "1",
-  title: "Summer Art Camp",
-  description:
-    "A fun-filled week of creative art activities for children to explore their artistic talents. Activities include painting, drawing, sculpture, and mixed media projects. All materials are provided.",
-  longDescription: `<p>Join us for an exciting week of creativity and artistic exploration! Our Summer Art Camp is designed to inspire young artists and provide them with a supportive environment to develop their skills.</p>
-    <p>Each day will focus on different artistic techniques and mediums:</p>
-    <ul>
-      <li><strong>Monday:</strong> Drawing fundamentals with pencil, charcoal, and pastels</li>
-      <li><strong>Tuesday:</strong> Painting techniques with watercolors and acrylics</li>
-      <li><strong>Wednesday:</strong> Sculpture and 3D art with clay and mixed materials</li>
-      <li><strong>Thursday:</strong> Mixed media projects combining various techniques</li>
-      <li><strong>Friday:</strong> Final project and art exhibition for parents</li>
-    </ul>
-    <p>All materials are provided, and children will bring home their completed artwork at the end of each day. A light snack will be provided, but please send your child with a water bottle and lunch.</p>
-    <p>Our instructors are experienced art educators who are passionate about fostering creativity in children. The camp maintains a low student-to-teacher ratio to ensure personalized attention.</p>`,
-  date: "July 15-19, 2023",
-  time: "9:00 AM - 12:00 PM",
-  location: "Community Arts Center, 123 Main St, Anytown",
-  ageGroup: "7-12 years",
-  category: "Arts & Crafts",
-  capacity: 25,
-  registrations: 18,
-  price: "$175",
-  status: "active",
-  imageUrl:
-    "https://images.unsplash.com/photo-1551966775-a4ddc8df052b?w=600&q=80",
-  organizer: {
-    name: "Community Arts Center",
-    description:
-      "A non-profit organization dedicated to providing arts education and experiences for children and adults in our community.",
-    contactEmail: "info@communityartscenter.org",
-    contactPhone: "(555) 123-4567",
-    website: "www.communityartscenter.org",
-    imageUrl:
-      "https://images.unsplash.com/photo-1544928147-79a2dbc1f389?w=600&q=80",
-  },
-};
+import { useEvents } from "@/hooks/useEvents";
+import { Event } from "@/types/models";
 
 const EventDetails = () => {
   const { eventId } = useParams<{ eventId: string }>();
   const [activeTab, setActiveTab] = useState("details");
   const [isSaved, setIsSaved] = useState(false);
+  const [eventData, setEventData] = useState<Event | null>(null);
+  const { event, loading, error, fetchEvent } = useEvents();
+  const navigate = useNavigate();
 
-  // In a real app, you would fetch the event data based on the eventId
-  // const event = useEvent(eventId);
+  useEffect(() => {
+    if (eventId) {
+      fetchEvent(eventId).catch((err) => {
+        console.error("Error fetching event:", err);
+      });
+    }
+  }, [eventId, fetchEvent]);
+
+  useEffect(() => {
+    if (event) {
+      setEventData(event);
+    }
+  }, [event]);
 
   const handleSaveEvent = () => {
     setIsSaved(!isSaved);
@@ -69,7 +46,7 @@ const EventDetails = () => {
 
   const handleShareEvent = () => {
     // In a real app, you would implement sharing functionality
-    if (navigator.share) {
+    if (navigator.share && eventData) {
       navigator.share({
         title: eventData.title,
         text: eventData.description,
@@ -82,12 +59,42 @@ const EventDetails = () => {
     }
   };
 
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex justify-center items-center">
+        <Loader className="h-8 w-8 animate-spin text-primary" />
+        <span className="ml-2">Loading event details...</span>
+      </div>
+    );
+  }
+
+  if (error || !eventData) {
+    return (
+      <div className="min-h-screen bg-background">
+        <div className="container mx-auto px-4 py-12 text-center">
+          <h2 className="text-2xl font-bold text-destructive mb-4">
+            Error Loading Event
+          </h2>
+          <p className="text-muted-foreground mb-6">
+            The event could not be found or there was an error loading it.
+          </p>
+          <Button asChild>
+            <Link to="/events">Back to Events</Link>
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background">
       {/* Event Header */}
       <div className="relative h-[300px] md:h-[400px] w-full overflow-hidden">
         <img
-          src={eventData.imageUrl}
+          src={
+            eventData.imageUrl ||
+            "https://images.unsplash.com/photo-1551966775-a4ddc8df052b?w=600&q=80"
+          }
           alt={eventData.title}
           className="absolute inset-0 w-full h-full object-cover"
         />
@@ -152,7 +159,10 @@ const EventDetails = () => {
                     <div
                       className="prose max-w-none"
                       dangerouslySetInnerHTML={{
-                        __html: eventData.longDescription,
+                        __html:
+                          eventData.longDescription ||
+                          eventData.description ||
+                          "",
                       }}
                     />
                   </CardContent>
@@ -178,35 +188,41 @@ const EventDetails = () => {
                           {eventData.organizer.description}
                         </p>
                         <div className="space-y-2">
-                          <p className="flex items-center gap-2">
-                            <span className="font-medium">Email:</span>
-                            <a
-                              href={`mailto:${eventData.organizer.contactEmail}`}
-                              className="text-primary hover:underline"
-                            >
-                              {eventData.organizer.contactEmail}
-                            </a>
-                          </p>
-                          <p className="flex items-center gap-2">
-                            <span className="font-medium">Phone:</span>
-                            <a
-                              href={`tel:${eventData.organizer.contactPhone}`}
-                              className="text-primary hover:underline"
-                            >
-                              {eventData.organizer.contactPhone}
-                            </a>
-                          </p>
-                          <p className="flex items-center gap-2">
-                            <span className="font-medium">Website:</span>
-                            <a
-                              href={`https://${eventData.organizer.website}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-primary hover:underline"
-                            >
-                              {eventData.organizer.website}
-                            </a>
-                          </p>
+                          {eventData.organizer?.contactEmail && (
+                            <p className="flex items-center gap-2">
+                              <span className="font-medium">Email:</span>
+                              <a
+                                href={`mailto:${eventData.organizer.contactEmail}`}
+                                className="text-primary hover:underline"
+                              >
+                                {eventData.organizer.contactEmail}
+                              </a>
+                            </p>
+                          )}
+                          {eventData.organizer?.contactPhone && (
+                            <p className="flex items-center gap-2">
+                              <span className="font-medium">Phone:</span>
+                              <a
+                                href={`tel:${eventData.organizer.contactPhone}`}
+                                className="text-primary hover:underline"
+                              >
+                                {eventData.organizer.contactPhone}
+                              </a>
+                            </p>
+                          )}
+                          {eventData.organizer?.website && (
+                            <p className="flex items-center gap-2">
+                              <span className="font-medium">Website:</span>
+                              <a
+                                href={`https://${eventData.organizer.website}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-primary hover:underline"
+                              >
+                                {eventData.organizer.website}
+                              </a>
+                            </p>
+                          )}
                         </div>
                       </div>
                     </div>
