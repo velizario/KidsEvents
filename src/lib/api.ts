@@ -1,5 +1,9 @@
 import { supabase } from "./supabase";
 import {
+  convertObjectToCamelCase,
+  convertObjectToSnakeCase,
+} from "./case-converter";
+import {
   User,
   Parent,
   Organizer,
@@ -64,31 +68,35 @@ export const authAPI = {
 
     // Create profile in the appropriate table based on user type
     if (userData.userType === "parent") {
-      await supabase.from("parents").insert({
-        id: data.user?.id,
-        email,
-        firstName: userData.firstName,
-        lastName: userData.lastName,
-        phone: userData.phone,
-        address: userData.address,
-        city: userData.city,
-        state: userData.state,
-        zipCode: userData.zipCode,
-      });
+      await supabase.from("parents").insert(
+        convertObjectToSnakeCase({
+          id: data.user?.id,
+          email,
+          firstName: userData.firstName,
+          lastName: userData.lastName,
+          phone: userData.phone,
+          address: userData.address,
+          city: userData.city,
+          state: userData.state,
+          zipCode: userData.zipCode,
+        }),
+      );
     } else {
-      await supabase.from("organizers").insert({
-        id: data.user?.id,
-        email,
-        organizationName: (userData as Partial<Organizer>).organizationName,
-        contactName: (userData as Partial<Organizer>).contactName,
-        description: (userData as Partial<Organizer>).description,
-        phone: userData.phone,
-        address: userData.address,
-        city: userData.city,
-        state: userData.state,
-        zipCode: userData.zipCode,
-        website: (userData as Partial<Organizer>).website,
-      });
+      await supabase.from("organizers").insert(
+        convertObjectToSnakeCase({
+          id: data.user?.id,
+          email,
+          organizationName: (userData as Partial<Organizer>).organizationName,
+          contactName: (userData as Partial<Organizer>).contactName,
+          description: (userData as Partial<Organizer>).description,
+          phone: userData.phone,
+          address: userData.address,
+          city: userData.city,
+          state: userData.state,
+          zipCode: userData.zipCode,
+          website: (userData as Partial<Organizer>).website,
+        }),
+      );
     }
 
     return data;
@@ -148,7 +156,7 @@ export const authAPI = {
       .single();
 
     if (error) throw error;
-    return data;
+    return convertObjectToCamelCase(data);
   },
 
   // Update user profile
@@ -165,11 +173,11 @@ export const authAPI = {
     const table = userType === "parent" ? "parents" : "organizers";
     const { data, error } = await supabase
       .from(table)
-      .update(userData)
+      .update(convertObjectToSnakeCase(userData))
       .eq("id", userId);
 
     if (error) throw error;
-    return data;
+    return convertObjectToCamelCase(data);
   },
 };
 
@@ -191,14 +199,16 @@ export const parentAPI = {
 
     const { data, error } = await supabase
       .from("children")
-      .insert({
-        ...childData,
-        parentId,
-      })
+      .insert(
+        convertObjectToSnakeCase({
+          ...childData,
+          parentId,
+        }),
+      )
       .select();
 
     if (error) throw error;
-    return data[0];
+    return convertObjectToCamelCase(data[0]);
   },
 
   // Update child information
@@ -213,12 +223,12 @@ export const parentAPI = {
 
     const { data, error } = await supabase
       .from("children")
-      .update(childData)
+      .update(convertObjectToSnakeCase(childData))
       .eq("id", childId)
       .select();
 
     if (error) throw error;
-    return data[0];
+    return convertObjectToCamelCase(data[0]);
   },
 
   // Delete a child
@@ -266,10 +276,10 @@ export const parentAPI = {
     const { data, error } = await supabase
       .from("children")
       .select("*")
-      .eq("parentId", parentId);
+      .eq("parent_id", parentId);
 
     if (error) throw error;
-    return data;
+    return convertObjectToCamelCase(data);
   },
 
   // Get a specific child
@@ -294,7 +304,7 @@ export const parentAPI = {
       .single();
 
     if (error) throw error;
-    return data;
+    return convertObjectToCamelCase(data);
   },
 
   // Get parent's registrations
@@ -313,10 +323,10 @@ export const parentAPI = {
         children (*)
       `,
       )
-      .eq("parentId", parentId);
+      .eq("parent_id", parentId);
 
     if (error) throw error;
-    return data;
+    return convertObjectToCamelCase(data);
   },
 };
 
@@ -344,15 +354,17 @@ export const eventAPI = {
 
     const { data, error } = await supabase
       .from("events")
-      .insert({
-        ...eventData,
-        organizerId,
-        registrations: 0,
-      })
+      .insert(
+        convertObjectToSnakeCase({
+          ...eventData,
+          organizerId,
+          registrations: 0,
+        }),
+      )
       .select();
 
     if (error) throw error;
-    return data[0];
+    return convertObjectToCamelCase(data[0]);
   },
 
   // Update an event
@@ -368,12 +380,12 @@ export const eventAPI = {
 
     const { data, error } = await supabase
       .from("events")
-      .update(eventData)
+      .update(convertObjectToSnakeCase(eventData))
       .eq("id", eventId)
       .select();
 
     if (error) throw error;
-    return data[0];
+    return convertObjectToCamelCase(data[0]);
   },
 
   // Delete an event
@@ -404,7 +416,7 @@ export const eventAPI = {
 
     let query = supabase.from("events").select(`
         *,
-        organizers (id, organizationName, contactName, email, phone)
+        organizers (id, organization_name, contact_name, email, phone)
       `);
 
     // Apply filters if provided
@@ -414,7 +426,7 @@ export const eventAPI = {
       }
 
       if (filters.ageGroup && filters.ageGroup !== "All Ages") {
-        query = query.ilike("ageGroup", `%${filters.ageGroup}%`);
+        query = query.ilike("age_group", `%${filters.ageGroup}%`);
       }
 
       if (filters.location) {
@@ -431,7 +443,7 @@ export const eventAPI = {
     const { data, error } = await query;
 
     if (error) throw error;
-    return data;
+    return convertObjectToCamelCase(data);
   },
 
   // Get events by organizer
@@ -444,10 +456,10 @@ export const eventAPI = {
     const { data, error } = await supabase
       .from("events")
       .select("*")
-      .eq("organizerId", organizerId);
+      .eq("organizer_id", organizerId);
 
     if (error) throw error;
-    return data;
+    return convertObjectToCamelCase(data);
   },
 
   // Get a specific event
@@ -469,7 +481,7 @@ export const eventAPI = {
       .single();
 
     if (error) throw error;
-    return data;
+    return convertObjectToCamelCase(data);
   },
 
   // Get event participants
@@ -485,13 +497,13 @@ export const eventAPI = {
         `
         *,
         children (*),
-        parents (id, firstName, lastName, email, phone)
+        parents (id, first_name, last_name, email, phone)
       `,
       )
-      .eq("eventId", eventId);
+      .eq("event_id", eventId);
 
     if (error) throw error;
-    return data;
+    return convertObjectToCamelCase(data);
   },
 };
 
@@ -545,16 +557,18 @@ export const registrationAPI = {
     // Create registration
     const { data, error } = await supabase
       .from("registrations")
-      .insert({
-        eventId,
-        childId: registrationData.childId,
-        parentId: registrationData.parentId,
-        status: "confirmed", // or 'pending' if payment is required
-        paymentStatus: event.isPaid ? "pending" : "paid",
-        confirmationCode,
-        registrationDate: new Date().toISOString(),
-        emergencyContact: registrationData.emergencyContact,
-      })
+      .insert(
+        convertObjectToSnakeCase({
+          eventId,
+          childId: registrationData.childId,
+          parentId: registrationData.parentId,
+          status: "confirmed", // or 'pending' if payment is required
+          paymentStatus: event.isPaid ? "pending" : "paid",
+          confirmationCode,
+          registrationDate: new Date().toISOString(),
+          emergencyContact: registrationData.emergencyContact,
+        }),
+      )
       .select();
 
     if (error) throw error;
@@ -565,7 +579,7 @@ export const registrationAPI = {
       .update({ registrations: event.registrations + 1 })
       .eq("id", eventId);
 
-    return data[0];
+    return convertObjectToCamelCase(data[0]);
   },
 
   // Cancel a registration
@@ -590,11 +604,13 @@ export const registrationAPI = {
     // Update registration status
     const { data, error } = await supabase
       .from("registrations")
-      .update({
-        status: "cancelled",
-        paymentStatus:
-          registration.paymentStatus === "paid" ? "refunded" : "cancelled",
-      })
+      .update(
+        convertObjectToSnakeCase({
+          status: "cancelled",
+          paymentStatus:
+            registration.payment_status === "paid" ? "refunded" : "cancelled",
+        }),
+      )
       .eq("id", registrationId)
       .select();
 
@@ -604,16 +620,16 @@ export const registrationAPI = {
     await supabase
       .from("events")
       .select("*")
-      .eq("id", registration.eventId)
+      .eq("id", registration.event_id)
       .single()
       .then(({ data: event }) => {
         return supabase
           .from("events")
           .update({ registrations: Math.max(0, event.registrations - 1) })
-          .eq("id", registration.eventId);
+          .eq("id", registration.event_id);
       });
 
-    return data[0];
+    return convertObjectToCamelCase(data[0]);
   },
 
   // Get a specific registration
@@ -630,14 +646,14 @@ export const registrationAPI = {
         *,
         events (*),
         children (*),
-        parents (id, firstName, lastName, email, phone)
+        parents (id, first_name, last_name, email, phone)
       `,
       )
       .eq("id", registrationId)
       .single();
 
     if (error) throw error;
-    return data;
+    return convertObjectToCamelCase(data);
   },
 
   // Update registration status (for organizers)
@@ -661,7 +677,7 @@ export const registrationAPI = {
       .select();
 
     if (error) throw error;
-    return data[0];
+    return convertObjectToCamelCase(data[0]);
   },
 
   // Update payment status (for organizers)
@@ -683,12 +699,12 @@ export const registrationAPI = {
 
     const { data, error } = await supabase
       .from("registrations")
-      .update({ paymentStatus })
+      .update({ payment_status: paymentStatus })
       .eq("id", registrationId)
       .select();
 
     if (error) throw error;
-    return data[0];
+    return convertObjectToCamelCase(data[0]);
   },
 };
 
@@ -719,13 +735,15 @@ export const reviewAPI = {
 
     const { data, error } = await supabase
       .from("reviews")
-      .insert({
-        eventId,
-        parentId,
-        rating: reviewData.rating,
-        comment: reviewData.comment,
-        date: new Date().toISOString(),
-      })
+      .insert(
+        convertObjectToSnakeCase({
+          eventId,
+          parentId,
+          rating: reviewData.rating,
+          comment: reviewData.comment,
+          date: new Date().toISOString(),
+        }),
+      )
       .select();
 
     if (error) throw error;
@@ -733,7 +751,7 @@ export const reviewAPI = {
     // Update organizer rating
     await updateOrganizerRating(eventId);
 
-    return data[0];
+    return convertObjectToCamelCase(data[0]);
   },
 
   // Get reviews for an event
@@ -748,13 +766,13 @@ export const reviewAPI = {
       .select(
         `
         *,
-        parents (firstName, lastName)
+        parents (first_name, last_name)
       `,
       )
-      .eq("eventId", eventId);
+      .eq("event_id", eventId);
 
     if (error) throw error;
-    return data;
+    return convertObjectToCamelCase(data);
   },
 
   // Get reviews for an organizer
@@ -769,14 +787,14 @@ export const reviewAPI = {
       .select(
         `
         *,
-        events (id, title, organizerId),
-        parents (firstName, lastName)
+        events (id, title, organizer_id),
+        parents (first_name, last_name)
       `,
       )
-      .eq("events.organizerId", organizerId);
+      .eq("events.organizer_id", organizerId);
 
     if (error) throw error;
-    return data;
+    return convertObjectToCamelCase(data);
   },
 };
 
@@ -790,7 +808,7 @@ async function updateOrganizerRating(eventId: string) {
   // Get the event to get the organizer ID
   const { data: event } = await supabase
     .from("events")
-    .select("organizerId")
+    .select("organizer_id")
     .eq("id", eventId)
     .single();
 
@@ -800,10 +818,10 @@ async function updateOrganizerRating(eventId: string) {
     .select(
       `
       rating,
-      events!inner (organizerId)
+      events!inner (organizer_id)
     `,
     )
-    .eq("events.organizerId", event.organizerId);
+    .eq("events.organizer_id", event.organizer_id);
 
   // Calculate average rating
   const totalRating = reviews.reduce((sum, review) => sum + review.rating, 0);
@@ -814,7 +832,7 @@ async function updateOrganizerRating(eventId: string) {
     .from("organizers")
     .update({
       rating: parseFloat(averageRating.toFixed(1)),
-      reviewCount: reviews.length,
+      review_count: reviews.length,
     })
-    .eq("id", event.organizerId);
+    .eq("id", event.organizer_id);
 }
