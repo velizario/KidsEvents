@@ -65,6 +65,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
               setUser({ ...profile, id: user.id, userType: type });
               setUserType(type);
               setIsAuthenticated(true);
+
+              // Redirect to the appropriate dashboard
+              navigate(
+                type === "parent"
+                  ? "/parent/dashboard"
+                  : "/organizer/dashboard",
+              );
             }
           }
         }
@@ -104,6 +111,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
               setUser({ ...profile, id: user.id, userType: type });
               setUserType(type);
               setIsAuthenticated(true);
+
+              // Redirect to the appropriate dashboard
+              navigate(
+                type === "parent"
+                  ? "/parent/dashboard"
+                  : "/organizer/dashboard",
+              );
             } else {
               // If profile doesn't exist yet (e.g., after email confirmation), create it
               console.log("Profile not found, creating from user metadata");

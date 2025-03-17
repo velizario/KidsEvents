@@ -50,17 +50,9 @@ const LoginForm = ({ onSubmit = () => {} }: LoginFormProps) => {
     console.log("Login form submitted:", data);
     try {
       // Use the actual authentication from context
-      console.log("1", data.email);
-
       await signIn(data.email, data.password);
 
-      // Redirect based on user type
-      console.log(data.email);
-      if (data.email.includes("organizer")) {
-        window.location.replace("/organizer/dashboard");
-      } else {
-        window.location.replace("/parent/dashboard");
-      }
+      // Redirect will be handled by the AuthContext after successful login
       onSubmit(data);
     } catch (error) {
       console.error("Login error:", error);

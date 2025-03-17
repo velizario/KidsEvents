@@ -1,19 +1,30 @@
 import React, { useState } from "react";
-import { Link } from "react-router-dom";
-import { Menu, X, User, ChevronDown } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import { Menu, X, User, ChevronDown, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
+import { useAuth } from "@/context/AuthContext";
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const isLoggedIn = false; // Replace with actual auth state
-  const userType = "parent"; // Replace with actual user type
+  const { user, isAuthenticated, userType, signOut } = useAuth();
+  const navigate = useNavigate();
   const pathname = window.location.pathname;
+
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      navigate("/login");
+    } catch (error) {
+      console.error("Error signing out:", error);
+    }
+  };
 
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
@@ -50,12 +61,14 @@ const Header = () => {
 
           {/* Auth Buttons or User Menu */}
           <div className="hidden md:flex items-center space-x-4">
-            {isLoggedIn ? (
+            {isAuthenticated && user ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="flex items-center gap-2">
                     <User className="h-4 w-4" />
-                    My Account
+                    {userType === "parent"
+                      ? `${user.firstName || ""} ${user.lastName || ""}`
+                      : user.organizationName || "My Account"}
                     <ChevronDown className="h-4 w-4" />
                   </Button>
                 </DropdownMenuTrigger>
@@ -74,7 +87,11 @@ const Header = () => {
                   <DropdownMenuItem asChild>
                     <Link to="/profile">Profile</Link>
                   </DropdownMenuItem>
-                  <DropdownMenuItem>Logout</DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleSignOut}>
+                    <LogOut className="h-4 w-4 mr-2" />
+                    Sign Out
+                  </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             ) : (
@@ -119,7 +136,7 @@ const Header = () => {
               ))}
             </nav>
             <div className="flex flex-col space-y-2 pt-4 border-t border-border">
-              {isLoggedIn ? (
+              {isAuthenticated && user ? (
                 <>
                   <Button variant="outline" asChild>
                     <Link
@@ -138,7 +155,16 @@ const Header = () => {
                       Profile
                     </Link>
                   </Button>
-                  <Button variant="outline">Logout</Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      handleSignOut();
+                      setIsMenuOpen(false);
+                    }}
+                  >
+                    <LogOut className="h-4 w-4 mr-2" />
+                    Sign Out
+                  </Button>
                 </>
               ) : (
                 <>
