@@ -4,6 +4,7 @@ import EventForm from "./EventForm";
 import { useEvents } from "@/hooks/useEvents";
 import { useToast } from "@/components/ui/use-toast";
 import { Loader2 } from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
 
 const EventFormWrapper = () => {
   const { createEvent, loading, error } = useEvents();
@@ -11,14 +12,21 @@ const EventFormWrapper = () => {
   const [success, setSuccess] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   const handleSubmit = async (data) => {
     try {
       console.log("Creating event with data:", data);
       setIsSubmitting(true);
-      // In a real app, you would get the organizerId from auth context
-      // For now, we'll use a mock ID
-      const organizerId = "mock-organizer-id";
+
+      // Get the organizer ID from the auth context
+      const organizerId = user?.id || "";
+
+      if (!organizerId) {
+        throw new Error(
+          "You must be logged in as an organizer to create events",
+        );
+      }
 
       // Format the data for the API
       const eventData = {
