@@ -31,7 +31,7 @@ const EventDetails = () => {
         console.error("Error fetching event:", err);
       });
     }
-  }, [eventId, fetchEvent]);
+  }, []);
 
   useEffect(() => {
     if (event) {
@@ -175,51 +175,54 @@ const EventDetails = () => {
                     <div className="flex flex-col md:flex-row gap-6">
                       <div className="md:w-1/3">
                         <img
-                          src={eventData.organizer.imageUrl}
-                          alt={eventData.organizer.name}
+                          src={
+                            eventData.organizers.imageUrl ||
+                            "https://images.unsplash.com/photo-1551966775-a4ddc8df052b?w=600&q=80"
+                          }
+                          alt={eventData.organizers.name}
                           className="w-full h-auto rounded-lg object-cover aspect-square"
                         />
                       </div>
                       <div className="md:w-2/3">
                         <h3 className="text-xl font-bold mb-2">
-                          {eventData.organizer.name}
+                          {eventData.organizers.name}
                         </h3>
                         <p className="text-muted-foreground mb-4">
-                          {eventData.organizer.description}
+                          {eventData.organizers.description}
                         </p>
                         <div className="space-y-2">
-                          {eventData.organizer?.contactEmail && (
+                          {eventData.organizers.contactEmail && (
                             <p className="flex items-center gap-2">
                               <span className="font-medium">Email:</span>
                               <a
-                                href={`mailto:${eventData.organizer.contactEmail}`}
+                                href={`mailto:${eventData.organizers.contactEmail}`}
                                 className="text-primary hover:underline"
                               >
-                                {eventData.organizer.contactEmail}
+                                {eventData.organizers.contactEmail}
                               </a>
                             </p>
                           )}
-                          {eventData.organizer?.contactPhone && (
+                          {eventData.organizers?.contactPhone && (
                             <p className="flex items-center gap-2">
                               <span className="font-medium">Phone:</span>
                               <a
-                                href={`tel:${eventData.organizer.contactPhone}`}
+                                href={`tel:${eventData.organizers.contactPhone}`}
                                 className="text-primary hover:underline"
                               >
-                                {eventData.organizer.contactPhone}
+                                {eventData.organizers.contactPhone}
                               </a>
                             </p>
                           )}
-                          {eventData.organizer?.website && (
+                          {eventData.organizers?.website && (
                             <p className="flex items-center gap-2">
                               <span className="font-medium">Website:</span>
                               <a
-                                href={`https://${eventData.organizer.website}`}
+                                href={`https://${eventData.organizers.website}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="text-primary hover:underline"
                               >
-                                {eventData.organizer.website}
+                                {eventData.organizers.website}
                               </a>
                             </p>
                           )}

@@ -33,7 +33,7 @@ function Home() {
     };
 
     loadEvents();
-  }, [fetchEvents]);
+  }, []);
 
   useEffect(() => {
     if (events && events.length > 0) {
