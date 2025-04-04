@@ -26,6 +26,7 @@ function Home() {
   useEffect(() => {
     const loadEvents = async () => {
       try {
+        // Fetch events with no filters to get all events
         await fetchEvents();
       } catch (err) {
         console.error("Error fetching events:", err);
@@ -33,7 +34,7 @@ function Home() {
     };
 
     loadEvents();
-  }, []);
+  }, [fetchEvents]);
 
   useEffect(() => {
     if (events && events.length > 0) {
@@ -43,7 +44,7 @@ function Home() {
   }, [events]);
 
   const handleSearch = () => {
-    navigate(`/events?search=${searchQuery}`);
+    navigate(`/events?search=${encodeURIComponent(searchQuery)}`);
   };
 
   return (

@@ -31,7 +31,7 @@ const EventDetails = () => {
         console.error("Error fetching event:", err);
       });
     }
-  }, []);
+  }, [eventId, fetchEvent]);
 
   useEffect(() => {
     if (event) {
@@ -41,21 +41,25 @@ const EventDetails = () => {
 
   const handleSaveEvent = () => {
     setIsSaved(!isSaved);
-    // In a real app, you would save/unsave the event in the database
+    // TODO: Implement saving event to user's saved events in the database
+    // This would require a new API endpoint and hook
   };
 
   const handleShareEvent = () => {
-    // In a real app, you would implement sharing functionality
     if (navigator.share && eventData) {
-      navigator.share({
-        title: eventData.title,
-        text: eventData.description,
-        url: window.location.href,
-      });
+      navigator
+        .share({
+          title: eventData.title,
+          text: eventData.description,
+          url: window.location.href,
+        })
+        .catch((err) => {
+          console.error("Error sharing:", err);
+        });
     } else {
       // Fallback for browsers that don't support the Web Share API
       console.log("Web Share API not supported");
-      // You could show a modal with share options instead
+      // TODO: Implement a modal with share options
     }
   };
 

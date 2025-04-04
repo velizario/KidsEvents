@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useParams } from "react-router-dom";
 import {
   Mail,
@@ -9,6 +9,7 @@ import {
   Star,
   ChevronRight,
   ArrowLeft,
+  Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -20,121 +21,80 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-
-// Mock organizer data
-const organizerData = {
-  id: "1",
-  name: "Community Arts Center",
-  description:
-    "A non-profit organization dedicated to providing arts education and experiences for children and adults in our community.",
-  longDescription: `<p>The Community Arts Center was founded in 1985 with a mission to make arts education accessible to all members of our community. We believe that creative expression is essential for personal growth and development, especially in children.</p>
-    <p>Our programs are designed to:</p>
-    <ul>
-      <li>Inspire creativity and self-expression</li>
-      <li>Build confidence and social skills</li>
-      <li>Develop problem-solving abilities</li>
-      <li>Foster appreciation for diverse art forms</li>
-      <li>Create a sense of community through shared artistic experiences</li>
-    </ul>
-    <p>Our instructors are professional artists and educators with extensive experience working with children of all ages and abilities. We maintain small class sizes to ensure personalized attention for each participant.</p>`,
-  contactEmail: "info@communityartscenter.org",
-  contactPhone: "(555) 123-4567",
-  website: "www.communityartscenter.org",
-  address: "123 Main St, Anytown, CA 12345",
-  imageUrl:
-    "https://images.unsplash.com/photo-1544928147-79a2dbc1f389?w=600&q=80",
-  rating: 4.8,
-  reviewCount: 156,
-  yearEstablished: 1985,
-};
-
-// Mock events data
-const eventsData = [
-  {
-    id: "1",
-    title: "Summer Art Camp",
-    date: "July 15-19, 2023",
-    imageUrl:
-      "https://images.unsplash.com/photo-1551966775-a4ddc8df052b?w=600&q=80",
-    category: "Arts & Crafts",
-    ageGroup: "7-12 years",
-    status: "upcoming",
-  },
-  {
-    id: "2",
-    title: "Painting for Kids",
-    date: "Every Saturday",
-    imageUrl:
-      "https://images.unsplash.com/photo-1560421683-6856ea585c78?w=600&q=80",
-    category: "Arts & Crafts",
-    ageGroup: "5-8 years",
-    status: "upcoming",
-  },
-  {
-    id: "3",
-    title: "Teen Art Studio",
-    date: "Wednesdays",
-    imageUrl:
-      "https://images.unsplash.com/photo-1460661419201-fd4cecdf8a8b?w=600&q=80",
-    category: "Arts & Crafts",
-    ageGroup: "13-17 years",
-    status: "upcoming",
-  },
-  {
-    id: "4",
-    title: "Spring Break Art Camp",
-    date: "March 15-19, 2023",
-    imageUrl:
-      "https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=600&q=80",
-    category: "Arts & Crafts",
-    ageGroup: "7-12 years",
-    status: "past",
-  },
-];
-
-// Mock reviews data
-const reviewsData = [
-  {
-    id: "1",
-    userName: "Sarah Johnson",
-    rating: 5,
-    date: "2023-05-15",
-    comment:
-      "My daughter absolutely loved the Summer Art Camp! The instructors were amazing and she came home with beautiful artwork every day. Highly recommend!",
-    eventTitle: "Summer Art Camp",
-  },
-  {
-    id: "2",
-    userName: "Michael Williams",
-    rating: 5,
-    date: "2023-04-22",
-    comment:
-      "The Painting for Kids class has been wonderful for my son. He looks forward to it every week and has shown remarkable improvement in his artistic skills.",
-    eventTitle: "Painting for Kids",
-  },
-  {
-    id: "3",
-    userName: "Jennifer Davis",
-    rating: 4,
-    date: "2023-03-10",
-    comment:
-      "Great organization with passionate instructors. My only suggestion would be to offer more weekend classes for working parents.",
-    eventTitle: "Teen Art Studio",
-  },
-];
+import { authAPI, eventAPI, reviewAPI } from "@/lib/api";
+import { Organizer, Event, Review } from "@/types/models";
 
 const OrganizerProfile = () => {
   const { organizerId } = useParams<{ organizerId: string }>();
   const [activeTab, setActiveTab] = useState("about");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [organizer, setOrganizer] = useState<Organizer | null>(null);
+  const [events, setEvents] = useState<Event[]>([]);
+  const [reviews, setReviews] = useState<Review[]>([]);
 
-  // In a real app, you would fetch the organizer data based on the organizerId
-  // const organizer = useOrganizer(organizerId);
+  useEffect(() => {
+    const fetchOrganizerData = async () => {
+      if (!organizerId) return;
+
+      setLoading(true);
+      setError(null);
+
+      try {
+        // Fetch organizer profile
+        const organizerData = await authAPI.getUserProfile(
+          organizerId,
+          "organizer",
+        );
+        setOrganizer(organizerData as Organizer);
+
+        // Fetch organizer's events
+        const eventsData = await eventAPI.getEventsByOrganizer(organizerId);
+        setEvents(eventsData);
+
+        // Fetch organizer's reviews
+        const reviewsData = await reviewAPI.getOrganizerReviews(organizerId);
+        setReviews(reviewsData);
+      } catch (err) {
+        console.error("Error fetching organizer data:", err);
+        setError("Failed to load organizer data. Please try again later.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchOrganizerData();
+  }, [organizerId]);
 
   // Filter events to show upcoming and past separately
-  const upcomingEvents = eventsData.filter(
-    (event) => event.status === "upcoming",
+  const upcomingEvents = events.filter(
+    (event) => event.status === "active" || event.status === "draft",
   );
-  const pastEvents = eventsData.filter((event) => event.status === "past");
+  const pastEvents = events.filter(
+    (event) => event.status === "completed" || event.status === "cancelled",
+  );
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <span className="ml-2">Loading organizer profile...</span>
+      </div>
+    );
+  }
+
+  if (error || !organizer) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center">
+        <div className="text-destructive mb-4">
+          Error: {error || "Organizer not found"}
+        </div>
+        <Button variant="outline" asChild>
+          <Link to="/events">Back to Events</Link>
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -144,32 +104,35 @@ const OrganizerProfile = () => {
           <div className="flex flex-col md:flex-row gap-6 items-center md:items-start">
             <div className="w-24 h-24 md:w-32 md:h-32 rounded-lg overflow-hidden border-4 border-white shadow-md bg-white">
               <img
-                src={organizerData.imageUrl}
-                alt={organizerData.name}
+                src={
+                  organizer.imageUrl ||
+                  "https://images.unsplash.com/photo-1544928147-79a2dbc1f389?w=600&q=80"
+                }
+                alt={organizer.organizationName}
                 className="w-full h-full object-cover"
               />
             </div>
             <div>
               <h1 className="text-2xl md:text-3xl font-bold">
-                {organizerData.name}
+                {organizer.organizationName}
               </h1>
               <div className="flex items-center gap-2 mt-2">
                 <div className="flex items-center">
                   <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />
                   <span className="ml-1 font-medium">
-                    {organizerData.rating}
+                    {organizer.rating || "N/A"}
                   </span>
                 </div>
                 <span className="text-muted-foreground">
-                  ({organizerData.reviewCount} reviews)
+                  ({organizer.reviewCount || 0} reviews)
                 </span>
                 <span className="text-muted-foreground">•</span>
                 <span className="text-muted-foreground">
-                  Est. {organizerData.yearEstablished}
+                  Est. {organizer.yearEstablished || "N/A"}
                 </span>
               </div>
               <p className="mt-2 text-muted-foreground max-w-2xl">
-                {organizerData.description}
+                {organizer.description}
               </p>
             </div>
           </div>
@@ -200,12 +163,17 @@ const OrganizerProfile = () => {
               <TabsContent value="about" className="space-y-6">
                 <Card>
                   <CardContent className="p-6">
-                    <div
-                      className="prose max-w-none"
-                      dangerouslySetInnerHTML={{
-                        __html: organizerData.longDescription,
-                      }}
-                    />
+                    <div className="prose max-w-none">
+                      {organizer.longDescription ? (
+                        <div
+                          dangerouslySetInnerHTML={{
+                            __html: organizer.longDescription,
+                          }}
+                        />
+                      ) : (
+                        <p>{organizer.description}</p>
+                      )}
+                    </div>
                   </CardContent>
                 </Card>
               </TabsContent>
@@ -329,13 +297,13 @@ const OrganizerProfile = () => {
                       <div>
                         <CardTitle>Reviews</CardTitle>
                         <CardDescription>
-                          {reviewsData.length} reviews from parents
+                          {reviews.length} reviews from parents
                         </CardDescription>
                       </div>
                       <div className="flex items-center bg-primary/10 px-3 py-1 rounded-full">
                         <Star className="h-4 w-4 text-yellow-500 fill-yellow-500 mr-1" />
                         <span className="font-medium">
-                          {organizerData.rating}
+                          {organizer.rating || "N/A"}
                         </span>
                         <span className="text-sm text-muted-foreground ml-1">
                           / 5
@@ -344,37 +312,43 @@ const OrganizerProfile = () => {
                     </div>
                   </CardHeader>
                   <CardContent>
-                    <div className="space-y-4">
-                      {reviewsData.map((review) => (
-                        <div
-                          key={review.id}
-                          className="border-b border-border pb-4 last:border-0 last:pb-0"
-                        >
-                          <div className="flex justify-between items-start">
-                            <div>
-                              <div className="font-medium">
-                                {review.userName}
+                    {reviews.length > 0 ? (
+                      <div className="space-y-4">
+                        {reviews.map((review) => (
+                          <div
+                            key={review.id}
+                            className="border-b border-border pb-4 last:border-0 last:pb-0"
+                          >
+                            <div className="flex justify-between items-start">
+                              <div>
+                                <div className="font-medium">
+                                  {review.parentName || "Anonymous"}
+                                </div>
+                                <div className="text-sm text-muted-foreground">
+                                  {review.eventTitle || "Event"}
+                                </div>
                               </div>
-                              <div className="text-sm text-muted-foreground">
-                                {review.eventTitle}
+                              <div className="flex items-center">
+                                {[...Array(5)].map((_, i) => (
+                                  <Star
+                                    key={i}
+                                    className={`h-4 w-4 ${i < review.rating ? "text-yellow-500 fill-yellow-500" : "text-muted"}`}
+                                  />
+                                ))}
+                                <span className="text-xs text-muted-foreground ml-2">
+                                  {review.date}
+                                </span>
                               </div>
                             </div>
-                            <div className="flex items-center">
-                              {[...Array(5)].map((_, i) => (
-                                <Star
-                                  key={i}
-                                  className={`h-4 w-4 ${i < review.rating ? "text-yellow-500 fill-yellow-500" : "text-muted"}`}
-                                />
-                              ))}
-                              <span className="text-xs text-muted-foreground ml-2">
-                                {review.date}
-                              </span>
-                            </div>
+                            <p className="mt-2 text-sm">{review.comment}</p>
                           </div>
-                          <p className="mt-2 text-sm">{review.comment}</p>
-                        </div>
-                      ))}
-                    </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-8">
+                        <p className="text-muted-foreground">No reviews yet</p>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               </TabsContent>
@@ -392,10 +366,10 @@ const OrganizerProfile = () => {
                       <div>
                         <p className="text-sm text-muted-foreground">Email</p>
                         <a
-                          href={`mailto:${organizerData.contactEmail}`}
+                          href={`mailto:${organizer.email}`}
                           className="font-medium text-primary hover:underline"
                         >
-                          {organizerData.contactEmail}
+                          {organizer.email}
                         </a>
                       </div>
                     </div>
@@ -404,10 +378,10 @@ const OrganizerProfile = () => {
                       <div>
                         <p className="text-sm text-muted-foreground">Phone</p>
                         <a
-                          href={`tel:${organizerData.contactPhone}`}
+                          href={`tel:${organizer.phone}`}
                           className="font-medium"
                         >
-                          {organizerData.contactPhone}
+                          {organizer.phone}
                         </a>
                       </div>
                     </div>
@@ -416,12 +390,12 @@ const OrganizerProfile = () => {
                       <div>
                         <p className="text-sm text-muted-foreground">Website</p>
                         <a
-                          href={`https://${organizerData.website}`}
+                          href={`https://${organizer.website || "#"}`}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="font-medium text-primary hover:underline"
                         >
-                          {organizerData.website}
+                          {organizer.website || "N/A"}
                         </a>
                       </div>
                     </div>
@@ -429,7 +403,11 @@ const OrganizerProfile = () => {
                       <MapPin className="h-5 w-5 text-muted-foreground" />
                       <div>
                         <p className="text-sm text-muted-foreground">Address</p>
-                        <p className="font-medium">{organizerData.address}</p>
+                        <p className="font-medium">
+                          {organizer.address
+                            ? `${organizer.address}${organizer.city ? `, ${organizer.city}` : ""}${organizer.state ? `, ${organizer.state}` : ""}${organizer.zipCode ? ` ${organizer.zipCode}` : ""}`
+                            : "Address not provided"}
+                        </p>
                       </div>
                     </div>
                   </div>

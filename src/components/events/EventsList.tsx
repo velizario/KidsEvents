@@ -31,7 +31,7 @@ const EventsList = () => {
     };
 
     loadEvents();
-  }, [selectedCategory, selectedAgeGroup, searchQuery]);
+  }, [selectedCategory, selectedAgeGroup, searchQuery, fetchEvents]);
 
   useEffect(() => {
     if (events) {
@@ -39,24 +39,8 @@ const EventsList = () => {
     }
   }, [events]);
 
-  // Filter events based on search query and filters (client-side filtering as backup)
-  const filteredEvents = allEvents.filter((event) => {
-    const matchesSearch =
-      !searchQuery ||
-      event.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      event.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      event.location?.toLowerCase().includes(searchQuery.toLowerCase());
-
-    const matchesCategory =
-      selectedCategory === "All Events" || event.category === selectedCategory;
-
-    // Simple age group filtering
-    const matchesAgeGroup =
-      selectedAgeGroup === "All Ages" ||
-      (event.ageGroup && event.ageGroup.includes(selectedAgeGroup));
-
-    return matchesSearch && matchesCategory && matchesAgeGroup;
-  });
+  // We're now using server-side filtering through the API, but keep client-side as backup
+  const filteredEvents = allEvents;
 
   const handleRegister = (id: string) => {
     console.log(`Register for event ${id}`);

@@ -1,6 +1,14 @@
-import { useState } from "react";
-import { Link } from "react-router-dom";
-import { Search, Filter, Download, Calendar, ChevronRight } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Link, useLocation } from "react-router-dom";
+import {
+  Search,
+  Filter,
+  Download,
+  Calendar,
+  ChevronRight,
+  Loader2,
+  AlertTriangle,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -12,92 +20,91 @@ import {
   CardDescription,
 } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-
-// Mock data for registrations
-const registrations = [
-  {
-    id: "1",
-    eventTitle: "Summer Art Camp",
-    childName: "Emma Johnson",
-    parentName: "Sarah Johnson",
-    parentEmail: "sarah.johnson@example.com",
-    date: "July 15-19, 2023",
-    registrationDate: "2023-06-10",
-    status: "confirmed",
-    paid: true,
-  },
-  {
-    id: "2",
-    eventTitle: "Junior Soccer League",
-    childName: "Noah Williams",
-    parentName: "Michael Williams",
-    parentEmail: "michael.williams@example.com",
-    date: "Every Saturday",
-    registrationDate: "2023-06-08",
-    status: "confirmed",
-    paid: true,
-  },
-  {
-    id: "3",
-    eventTitle: "Coding for Kids",
-    childName: "Olivia Davis",
-    parentName: "Jennifer Davis",
-    parentEmail: "jennifer.davis@example.com",
-    date: "June 5-26, 2023",
-    registrationDate: "2023-06-07",
-    status: "pending",
-    paid: false,
-  },
-  {
-    id: "4",
-    eventTitle: "Summer Art Camp",
-    childName: "Liam Brown",
-    parentName: "David Brown",
-    parentEmail: "david.brown@example.com",
-    date: "July 15-19, 2023",
-    registrationDate: "2023-06-05",
-    status: "confirmed",
-    paid: true,
-  },
-  {
-    id: "5",
-    eventTitle: "Music & Movement",
-    childName: "Sophia Miller",
-    parentName: "Jessica Miller",
-    parentEmail: "jessica.miller@example.com",
-    date: "Tuesdays & Thursdays",
-    registrationDate: "2023-06-02",
-    status: "confirmed",
-    paid: true,
-  },
-  {
-    id: "6",
-    eventTitle: "Ballet for Beginners",
-    childName: "Ava Wilson",
-    parentName: "Robert Wilson",
-    parentEmail: "robert.wilson@example.com",
-    date: "Mondays & Wednesdays",
-    registrationDate: "2023-06-01",
-    status: "cancelled",
-    paid: false,
-  },
-];
+import { parentAPI, eventAPI, authAPI } from "@/lib/api";
+import { Registration, UserType } from "@/types/models";
 
 const RegistrationsList = () => {
+  const location = useLocation();
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [showFilters, setShowFilters] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [registrations, setRegistrations] = useState<Registration[]>([]);
+  const [userType, setUserType] = useState<UserType | null>(null);
+  const [organizerId, setOrganizerId] = useState<string | null>(null);
+  const [eventId, setEventId] = useState<string | null>(null);
+
+  // Determine if we're viewing as parent or organizer
+  useEffect(() => {
+    const fetchUserType = async () => {
+      try {
+        const userData = await authAPI.getCurrentUser();
+        setUserType(userData.userType);
+        if (userData.userType === "organizer") {
+          setOrganizerId(userData.id);
+        }
+      } catch (err) {
+        console.error("Error fetching user data:", err);
+        setError("Failed to determine user type");
+      }
+    };
+
+    fetchUserType();
+
+    // Check if we're viewing registrations for a specific event
+    const params = new URLSearchParams(location.search);
+    const eventIdParam = params.get("eventId");
+    if (eventIdParam) {
+      setEventId(eventIdParam);
+    }
+  }, [location]);
+
+  // Fetch registrations based on user type and context
+  useEffect(() => {
+    const fetchRegistrations = async () => {
+      try {
+        setLoading(true);
+        let data: Registration[] = [];
+
+        if (eventId) {
+          // If viewing registrations for a specific event
+          data = await eventAPI.getEventParticipants(eventId);
+        } else if (userType === "parent") {
+          // Parent viewing their own registrations
+          data = await parentAPI.getRegistrations();
+        } else if (userType === "organizer" && organizerId) {
+          // Organizer viewing all registrations for their events
+          data = await eventAPI.getOrganizerRegistrations(organizerId);
+        }
+
+        setRegistrations(data);
+        setError(null);
+      } catch (err) {
+        console.error("Error fetching registrations:", err);
+        setError("Failed to load registrations. Please try again.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (userType || eventId) {
+      fetchRegistrations();
+    }
+  }, [userType, organizerId, eventId]);
 
   // Filter registrations based on search query and status filter
   const filteredRegistrations = registrations.filter((registration) => {
     const matchesSearch =
       registration.eventTitle
-        .toLowerCase()
+        ?.toLowerCase()
         .includes(searchQuery.toLowerCase()) ||
       registration.childName
-        .toLowerCase()
+        ?.toLowerCase()
         .includes(searchQuery.toLowerCase()) ||
-      registration.parentName.toLowerCase().includes(searchQuery.toLowerCase());
+      registration.parentName
+        ?.toLowerCase()
+        .includes(searchQuery.toLowerCase());
 
     const matchesStatus =
       statusFilter === "all" ||
@@ -108,10 +115,50 @@ const RegistrationsList = () => {
     return matchesSearch && matchesStatus;
   });
 
-  const handleExportRegistrations = () => {
-    console.log("Exporting registrations");
-    // In a real app, you would generate and download a CSV file
+  const handleExportRegistrations = async () => {
+    try {
+      setLoading(true);
+      if (eventId) {
+        await eventAPI.exportEventParticipants(eventId);
+      } else if (userType === "organizer" && organizerId) {
+        await eventAPI.exportOrganizerRegistrations(organizerId);
+      } else {
+        await parentAPI.exportRegistrations();
+      }
+      console.log("Exporting registrations");
+    } catch (err) {
+      console.error("Error exporting registrations:", err);
+      setError("Failed to export registrations. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   };
+
+  // Loading state
+  if (loading && registrations.length === 0) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="h-12 w-12 animate-spin text-primary" />
+          <p className="text-lg">Loading registrations...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error && registrations.length === 0) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4 max-w-md text-center">
+          <AlertTriangle className="h-12 w-12 text-destructive" />
+          <h2 className="text-xl font-bold">Error Loading Registrations</h2>
+          <p>{error}</p>
+          <Button onClick={() => window.location.reload()}>Try Again</Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -122,11 +169,24 @@ const RegistrationsList = () => {
             <div>
               <h1 className="text-2xl font-bold">Registrations</h1>
               <p className="text-muted-foreground">
-                Manage event registrations
+                {eventId
+                  ? "Event participants"
+                  : userType === "parent"
+                    ? "Your registrations"
+                    : "Manage event registrations"}
               </p>
             </div>
-            <Button variant="outline" onClick={handleExportRegistrations}>
-              <Download className="h-4 w-4 mr-2" /> Export All
+            <Button
+              variant="outline"
+              onClick={handleExportRegistrations}
+              disabled={loading}
+            >
+              {loading ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Download className="h-4 w-4 mr-2" />
+              )}
+              Export All
             </Button>
           </div>
         </div>

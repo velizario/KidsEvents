@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { Link, useParams, useNavigate } from "react-router-dom";
 import {
   ArrowLeft,
   Calendar,
@@ -11,6 +11,8 @@ import {
   Phone,
   Check,
   X,
+  Loader2,
+  AlertTriangle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -32,58 +34,122 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-
-// Mock registration data
-const registrationData = {
-  id: "1",
-  eventTitle: "Summer Art Camp",
-  eventDate: "July 15-19, 2023",
-  eventTime: "9:00 AM - 12:00 PM",
-  eventLocation: "Community Arts Center, 123 Main St, Anytown",
-  eventImageUrl:
-    "https://images.unsplash.com/photo-1551966775-a4ddc8df052b?w=600&q=80",
-  price: "$175",
-  status: "confirmed",
-  paymentStatus: "paid",
-  registrationDate: "2023-06-10",
-  confirmationCode: "ART-2023-1234",
-  child: {
-    firstName: "Emma",
-    lastName: "Johnson",
-    age: 8,
-    allergies: "None",
-    specialNeeds: "",
-  },
-  parent: {
-    name: "Sarah Johnson",
-    email: "sarah.johnson@example.com",
-    phone: "(555) 123-4567",
-  },
-  organizer: {
-    name: "Community Arts Center",
-    email: "info@communityartscenter.org",
-    phone: "(555) 987-6543",
-  },
-};
+import { registrationAPI } from "@/lib/api";
+import { Registration } from "@/types/models";
 
 const RegistrationDetails = () => {
   const { registrationId } = useParams<{ registrationId: string }>();
+  const navigate = useNavigate();
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [registrationData, setRegistrationData] = useState<Registration | null>(
+    null,
+  );
 
-  // In a real app, you would fetch the registration data based on the registrationId
-  // const registration = useRegistration(registrationId);
+  useEffect(() => {
+    const fetchRegistration = async () => {
+      if (!registrationId) return;
 
-  const handleCancelRegistration = () => {
-    console.log(`Canceling registration ${registrationId}`);
-    // In a real app, you would update the registration status
-    setCancelDialogOpen(false);
-    // navigate('/parent/dashboard');
+      try {
+        setLoading(true);
+        const data = await registrationAPI.getRegistration(registrationId);
+        setRegistrationData(data);
+        setError(null);
+      } catch (err) {
+        console.error("Error fetching registration:", err);
+        setError("Failed to load registration details. Please try again.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchRegistration();
+  }, [registrationId]);
+
+  const handleCancelRegistration = async () => {
+    if (!registrationId) return;
+
+    try {
+      setLoading(true);
+      await registrationAPI.updateRegistrationStatus(
+        registrationId,
+        "cancelled",
+      );
+      // Refresh the registration data
+      const updatedData = await registrationAPI.getRegistration(registrationId);
+      setRegistrationData(updatedData);
+      setCancelDialogOpen(false);
+    } catch (err) {
+      console.error("Error cancelling registration:", err);
+      setError("Failed to cancel registration. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleDownloadTicket = () => {
-    console.log(`Downloading ticket for registration ${registrationId}`);
-    // In a real app, you would generate and download a PDF ticket
+  const handleDownloadTicket = async () => {
+    if (!registrationId) return;
+
+    try {
+      setLoading(true);
+      // In a real app, you would generate and download a PDF ticket
+      await registrationAPI.downloadTicket(registrationId);
+      console.log(`Downloading ticket for registration ${registrationId}`);
+    } catch (err) {
+      console.error("Error downloading ticket:", err);
+      setError("Failed to download ticket. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   };
+
+  // Loading state
+  if (loading && !registrationData) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="h-12 w-12 animate-spin text-primary" />
+          <p className="text-lg">Loading registration details...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error && !registrationData) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4 max-w-md text-center">
+          <AlertTriangle className="h-12 w-12 text-destructive" />
+          <h2 className="text-xl font-bold">Error Loading Registration</h2>
+          <p>{error}</p>
+          <Button onClick={() => navigate("/parent/dashboard")}>
+            Return to Dashboard
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  // No data state
+  if (!registrationData) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4 max-w-md text-center">
+          <AlertTriangle className="h-12 w-12 text-muted-foreground" />
+          <h2 className="text-xl font-bold">Registration Not Found</h2>
+          <p>
+            The registration you're looking for doesn't exist or you don't have
+            permission to view it.
+          </p>
+          <Button onClick={() => navigate("/parent/dashboard")}>
+            Return to Dashboard
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
