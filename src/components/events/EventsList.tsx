@@ -31,7 +31,7 @@ const EventsList = () => {
     };
 
     loadEvents();
-  }, [fetchEvents, selectedCategory, selectedAgeGroup, searchQuery]);
+  }, [selectedCategory, selectedAgeGroup, searchQuery]);
 
   useEffect(() => {
     if (events) {
