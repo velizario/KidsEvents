@@ -2,6 +2,41 @@ import { useState } from "react";
 import { authAPI, parentAPI } from "@/lib/api";
 import { Parent, Organizer, Child } from "@/types/models";
 
+// Configure logging level
+const LOG_LEVEL = {
+  DEBUG: 0,
+  INFO: 1,
+  WARN: 2,
+  ERROR: 3,
+};
+
+// Set current log level - can be adjusted for production/development
+const CURRENT_LOG_LEVEL = LOG_LEVEL.DEBUG;
+
+// Logging utility functions
+const logger = {
+  debug: (message: string, data?: any) => {
+    if (CURRENT_LOG_LEVEL <= LOG_LEVEL.DEBUG) {
+      console.debug(`[PROFILE DEBUG] ${message}`, data ? data : "");
+    }
+  },
+  info: (message: string, data?: any) => {
+    if (CURRENT_LOG_LEVEL <= LOG_LEVEL.INFO) {
+      console.info(`[PROFILE INFO] ${message}`, data ? data : "");
+    }
+  },
+  warn: (message: string, data?: any) => {
+    if (CURRENT_LOG_LEVEL <= LOG_LEVEL.WARN) {
+      console.warn(`[PROFILE WARN] ${message}`, data ? data : "");
+    }
+  },
+  error: (message: string, error?: any) => {
+    if (CURRENT_LOG_LEVEL <= LOG_LEVEL.ERROR) {
+      console.error(`[PROFILE ERROR] ${message}`, error ? error : "");
+    }
+  },
+};
+
 export const useProfile = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
@@ -10,17 +45,30 @@ export const useProfile = () => {
     parentId: string,
     profileData: Partial<Parent>,
   ) => {
+    logger.debug("Starting updateParentProfile", {
+      parentId,
+      updateFields: Object.keys(profileData),
+    });
     try {
+      logger.debug("Setting loading state to true");
       setLoading(true);
       setError(null);
+
+      logger.info("Calling authAPI.updateUserProfile for parent", {
+        parentId,
+        updateFields: Object.keys(profileData),
+      });
       const data = await authAPI.updateUserProfile(
         parentId,
         "parent",
         profileData,
       );
+      logger.debug("Received updated parent profile data", { parentId });
+
+      logger.info("Successfully updated parent profile", { parentId });
       return data;
     } catch (err) {
-      console.error("Error updating parent profile:", err);
+      logger.error("Error updating parent profile:", err);
       setError(
         err instanceof Error
           ? err
@@ -28,7 +76,9 @@ export const useProfile = () => {
       );
       throw err;
     } finally {
+      logger.debug("Setting loading state to false");
       setLoading(false);
+      logger.debug("Completed updateParentProfile");
     }
   };
 
@@ -36,17 +86,30 @@ export const useProfile = () => {
     organizerId: string,
     profileData: Partial<Organizer>,
   ) => {
+    logger.debug("Starting updateOrganizerProfile", {
+      organizerId,
+      updateFields: Object.keys(profileData),
+    });
     try {
+      logger.debug("Setting loading state to true");
       setLoading(true);
       setError(null);
+
+      logger.info("Calling authAPI.updateUserProfile for organizer", {
+        organizerId,
+        updateFields: Object.keys(profileData),
+      });
       const data = await authAPI.updateUserProfile(
         organizerId,
         "organizer",
         profileData,
       );
+      logger.debug("Received updated organizer profile data", { organizerId });
+
+      logger.info("Successfully updated organizer profile", { organizerId });
       return data;
     } catch (err) {
-      console.error("Error updating organizer profile:", err);
+      logger.error("Error updating organizer profile:", err);
       setError(
         err instanceof Error
           ? err
@@ -54,7 +117,9 @@ export const useProfile = () => {
       );
       throw err;
     } finally {
+      logger.debug("Setting loading state to false");
       setLoading(false);
+      logger.debug("Completed updateOrganizerProfile");
     }
   };
 
@@ -62,79 +127,160 @@ export const useProfile = () => {
     parentId: string,
     childData: Omit<Child, "id" | "parentId">,
   ) => {
+    logger.debug("Starting addChild", {
+      parentId,
+      childData: {
+        firstName: childData.firstName,
+        lastName: childData.lastName,
+      },
+    });
     try {
+      logger.debug("Setting loading state to true");
       setLoading(true);
       setError(null);
+
+      logger.info("Calling parentAPI.addChild", {
+        parentId,
+        childName: `${childData.firstName} ${childData.lastName}`,
+      });
       const data = await parentAPI.addChild(parentId, childData);
+      logger.debug("Received new child data", { childId: data.id });
+
+      logger.info("Successfully added child", {
+        parentId,
+        childId: data.id,
+        childName: `${data.firstName} ${data.lastName}`,
+      });
       return data;
     } catch (err) {
-      console.error("Error adding child:", err);
+      logger.error("Error adding child:", err);
       setError(err instanceof Error ? err : new Error("Failed to add child"));
       throw err;
     } finally {
+      logger.debug("Setting loading state to false");
       setLoading(false);
+      logger.debug("Completed addChild");
     }
   };
 
   const updateChild = async (childId: string, childData: Partial<Child>) => {
+    logger.debug("Starting updateChild", {
+      childId,
+      updateFields: Object.keys(childData),
+    });
     try {
+      logger.debug("Setting loading state to true");
       setLoading(true);
       setError(null);
+
+      logger.info("Calling parentAPI.updateChild", {
+        childId,
+        updateFields: Object.keys(childData),
+      });
       const data = await parentAPI.updateChild(childId, childData);
+      logger.debug("Received updated child data", { childId: data.id });
+
+      logger.info("Successfully updated child", {
+        childId: data.id,
+        childName:
+          childData.firstName || childData.lastName
+            ? `${childData.firstName || data.firstName} ${childData.lastName || data.lastName}`
+            : undefined,
+      });
       return data;
     } catch (err) {
-      console.error("Error updating child:", err);
+      logger.error("Error updating child:", err);
       setError(
         err instanceof Error ? err : new Error("Failed to update child"),
       );
       throw err;
     } finally {
+      logger.debug("Setting loading state to false");
       setLoading(false);
+      logger.debug("Completed updateChild");
     }
   };
 
   const deleteChild = async (childId: string) => {
+    logger.debug("Starting deleteChild", { childId });
     try {
+      logger.debug("Setting loading state to true");
       setLoading(true);
       setError(null);
+
+      logger.info("Calling parentAPI.deleteChild", { childId });
       await parentAPI.deleteChild(childId);
+
+      logger.info("Successfully deleted child", { childId });
       return true;
     } catch (err) {
-      console.error("Error deleting child:", err);
+      logger.error("Error deleting child:", err);
       setError(
         err instanceof Error ? err : new Error("Failed to delete child"),
       );
       throw err;
     } finally {
+      logger.debug("Setting loading state to false");
       setLoading(false);
+      logger.debug("Completed deleteChild");
     }
   };
 
   const getChildren = async (parentId: string) => {
+    logger.debug("Starting getChildren", { parentId });
     try {
+      logger.debug("Setting loading state to true");
       setLoading(true);
       setError(null);
+
+      logger.info("Calling parentAPI.getChildren", { parentId });
       const data = await parentAPI.getChildren(parentId);
+      logger.debug("Received children data", {
+        parentId,
+        childrenCount: data.length,
+        childrenIds: data.map((child) => child.id),
+      });
+
+      logger.info("Successfully retrieved children", {
+        parentId,
+        count: data.length,
+      });
       return data;
     } catch (err) {
-      console.error("Error getting children:", err);
+      logger.error("Error getting children:", err);
       setError(
         err instanceof Error ? err : new Error("Failed to get children"),
       );
       throw err;
     } finally {
+      logger.debug("Setting loading state to false");
       setLoading(false);
+      logger.debug("Completed getChildren");
     }
   };
 
   const getParentRegistrations = async (parentId: string) => {
+    logger.debug("Starting getParentRegistrations", { parentId });
     try {
+      logger.debug("Setting loading state to true");
       setLoading(true);
       setError(null);
+
+      logger.info("Calling parentAPI.getRegistrations", { parentId });
       const data = await parentAPI.getRegistrations(parentId);
+      logger.debug("Received parent registrations data", {
+        parentId,
+        registrationsCount: data.length,
+        registrationIds: data.map((reg) => reg.id),
+      });
+
+      logger.info("Successfully retrieved parent registrations", {
+        parentId,
+        count: data.length,
+      });
       return data;
     } catch (err) {
-      console.error("Error getting parent registrations:", err);
+      logger.error("Error getting parent registrations:", err);
       setError(
         err instanceof Error
           ? err
@@ -142,7 +288,9 @@ export const useProfile = () => {
       );
       throw err;
     } finally {
+      logger.debug("Setting loading state to false");
       setLoading(false);
+      logger.debug("Completed getParentRegistrations");
     }
   };
 

@@ -4,6 +4,41 @@ import { supabase } from "@/lib/supabase";
 import { User } from "@/types/models";
 import { useNavigate } from "react-router-dom";
 
+// Configure logging level
+const LOG_LEVEL = {
+  DEBUG: 0,
+  INFO: 1,
+  WARN: 2,
+  ERROR: 3,
+};
+
+// Set current log level - can be adjusted for production/development
+const CURRENT_LOG_LEVEL = LOG_LEVEL.DEBUG;
+
+// Logging utility functions
+const logger = {
+  debug: (message: string, data?: any) => {
+    if (CURRENT_LOG_LEVEL <= LOG_LEVEL.DEBUG) {
+      console.debug(`[AUTH DEBUG] ${message}`, data ? data : "");
+    }
+  },
+  info: (message: string, data?: any) => {
+    if (CURRENT_LOG_LEVEL <= LOG_LEVEL.INFO) {
+      console.info(`[AUTH INFO] ${message}`, data ? data : "");
+    }
+  },
+  warn: (message: string, data?: any) => {
+    if (CURRENT_LOG_LEVEL <= LOG_LEVEL.WARN) {
+      console.warn(`[AUTH WARN] ${message}`, data ? data : "");
+    }
+  },
+  error: (message: string, error?: any) => {
+    if (CURRENT_LOG_LEVEL <= LOG_LEVEL.ERROR) {
+      console.error(`[AUTH ERROR] ${message}`, error ? error : "");
+    }
+  },
+};
+
 interface AuthState {
   user: User | null;
   isLoading: boolean;
@@ -13,7 +48,7 @@ interface AuthState {
   signUp: (
     email: string,
     password: string,
-    userData: Partial<User>
+    userData: Partial<User>,
   ) => Promise<void>;
   signOut: () => Promise<void>;
   checkUser: () => Promise<void>;
@@ -28,28 +63,36 @@ export const useAuthStore = create<AuthState>(
       userType: null,
 
       checkUser: async () => {
+        logger.debug("Starting checkUser process");
         try {
           // Skip actual API calls if using placeholder URL
           if (supabase.supabaseUrl === "https://placeholder-url.supabase.co") {
-            console.log("Using placeholder Supabase URL - skipping auth check");
+            logger.info("Using placeholder Supabase URL - skipping auth check");
             set({ isLoading: false });
             return;
           }
 
+          logger.debug("Fetching current session");
           const {
             data: { session },
           } = await supabase.auth.getSession();
+          logger.debug("Session fetch result", { hasSession: !!session });
           if (session) {
+            logger.debug("Session exists, fetching user data");
             const {
               data: { user },
             } = await supabase.auth.getUser();
+            logger.debug("User fetch result", {
+              hasUser: !!user,
+              userId: user?.id,
+            });
             if (user) {
               // Get user profile data from the appropriate table
               const type = user.user_metadata?.userType || "parent";
-              console.log(
+              logger.info(
                 `Fetching profile for user ${user.id} from ${
                   type === "parent" ? "parents" : "organizers"
-                }`
+                }`,
               );
               const { data: profile, error: profileError } = await supabase
                 .from(type === "parent" ? "parents" : "organizers")
@@ -58,19 +101,26 @@ export const useAuthStore = create<AuthState>(
                 .single();
 
               if (profileError) {
-                console.error(`Error fetching ${type} profile:`, profileError);
+                logger.error(`Error fetching ${type} profile:`, profileError);
               }
 
               if (profile) {
+                logger.info(`Profile found for user ${user.id}`, {
+                  userType: type,
+                });
                 set({
                   user: { ...profile, id: user.id, userType: type },
                   userType: type,
                   isAuthenticated: true,
                   isLoading: false,
                 });
+                logger.debug("Auth state updated with profile data");
               } else {
                 // If profile doesn't exist yet (e.g., after email confirmation), create it
-                console.log("Profile not found, creating from user metadata");
+                logger.warn("Profile not found, creating from user metadata", {
+                  userId: user.id,
+                  userType: type,
+                });
                 const userData = {
                   id: user.id,
                   email: user.email,
@@ -96,13 +146,18 @@ export const useAuthStore = create<AuthState>(
                         last_name: userData.lastName || "",
                         phone: userData.phone || "",
                       },
-                      { onConflict: "id" }
+                      { onConflict: "id" },
                     );
 
                   if (parentError) {
-                    console.error(
+                    logger.error(
                       "Error creating parent profile after auth:",
-                      parentError
+                      parentError,
+                    );
+                  } else {
+                    logger.info(
+                      "Successfully created parent profile after auth",
+                      { userId: user.id },
                     );
                   }
                 } else {
@@ -118,13 +173,18 @@ export const useAuthStore = create<AuthState>(
                         phone: userData.phone || "",
                         website: userData.website || "",
                       },
-                      { onConflict: "id" }
+                      { onConflict: "id" },
                     );
 
                   if (organizerError) {
-                    console.error(
+                    logger.error(
                       "Error creating organizer profile after auth:",
-                      organizerError
+                      organizerError,
+                    );
+                  } else {
+                    logger.info(
+                      "Successfully created organizer profile after auth",
+                      { userId: user.id },
                     );
                   }
                 }
@@ -137,12 +197,17 @@ export const useAuthStore = create<AuthState>(
                   .single();
 
                 if (newProfile) {
+                  logger.info("Successfully fetched newly created profile", {
+                    userId: user.id,
+                    userType: type,
+                  });
                   set({
                     user: { ...newProfile, id: user.id, userType: type },
                     userType: type,
                     isAuthenticated: true,
                     isLoading: false,
                   });
+                  logger.debug("Auth state updated with new profile data");
                 } else {
                   set({ isLoading: false });
                 }
@@ -154,36 +219,65 @@ export const useAuthStore = create<AuthState>(
             set({ isLoading: false });
           }
         } catch (error) {
-          console.error("Error checking user:", error);
+          logger.error("Error checking user:", error);
           set({ isLoading: false });
+          logger.debug("Auth loading state set to false after error");
         }
+        logger.debug("Completed checkUser process");
       },
 
       signIn: async (email: string, password: string) => {
+        logger.info(`Attempting to sign in user`, {
+          email: email.substring(0, 3) + "***",
+        });
         try {
+          logger.debug("Setting loading state to true");
           set({ isLoading: true });
+
+          logger.debug("Calling Supabase signInWithPassword");
           const { error } = await supabase.auth.signInWithPassword({
             email,
             password,
           });
-          if (error) throw error;
+
+          if (error) {
+            logger.error("Sign in failed", {
+              errorMessage: error.message,
+              errorCode: error.code,
+            });
+            throw error;
+          }
+
+          logger.info("Sign in successful", {
+            email: email.substring(0, 3) + "***",
+          });
 
           // The auth state change listener will handle setting the user
+          logger.debug("Calling checkUser to update auth state");
           await get().checkUser();
         } catch (error) {
-          console.error("Error signing in:", error);
+          logger.error("Error signing in:", error);
           set({ isLoading: false });
+          logger.debug("Auth loading state set to false after error");
           throw error;
         }
+        logger.debug("Completed sign in process");
       },
 
       signUp: async (
         email: string,
         password: string,
-        userData: Partial<User>
+        userData: Partial<User>,
       ) => {
+        logger.info(`Attempting to sign up new user`, {
+          email: email.substring(0, 3) + "***",
+          userType: userData.userType,
+        });
         try {
+          logger.debug("Setting loading state to true");
           set({ isLoading: true });
+
+          logger.debug("Calling Supabase signUp");
           const { data, error } = await supabase.auth.signUp({
             email,
             password,
@@ -198,9 +292,24 @@ export const useAuthStore = create<AuthState>(
             },
           });
 
-          if (error) throw error;
+          if (error) {
+            logger.error("Sign up failed", {
+              errorMessage: error.message,
+              errorCode: error.code,
+            });
+            throw error;
+          }
+
+          logger.info("Sign up successful", {
+            userId: data.user?.id,
+            userType: userData.userType,
+          });
 
           // Create profile in the appropriate table with upsert to handle both initial creation and post-confirmation
+          logger.debug("Creating user profile", {
+            userType: userData.userType,
+            userId: data.user?.id,
+          });
           if (userData.userType === "parent") {
             const { error: parentError } = await supabase
               .from("parents")
@@ -213,11 +322,15 @@ export const useAuthStore = create<AuthState>(
                   phone: userData.phone || "",
                   // Using snake_case for database column names
                 },
-                { onConflict: "id" }
+                { onConflict: "id" },
               );
 
             if (parentError) {
-              console.error("Error creating parent profile:", parentError);
+              logger.error("Error creating parent profile:", parentError);
+            } else {
+              logger.info("Successfully created parent profile", {
+                userId: data.user?.id,
+              });
             }
           } else {
             const { error: organizerError } = await supabase
@@ -233,19 +346,21 @@ export const useAuthStore = create<AuthState>(
                   website: (userData as any).website || "",
                   // Using snake_case for database column names
                 },
-                { onConflict: "id" }
+                { onConflict: "id" },
               );
 
             if (organizerError) {
-              console.error(
-                "Error creating organizer profile:",
-                organizerError
-              );
+              logger.error("Error creating organizer profile:", organizerError);
+            } else {
+              logger.info("Successfully created organizer profile", {
+                userId: data.user?.id,
+              });
             }
           }
 
           // For development, auto-confirm the email
           if (supabase.supabaseUrl === "https://placeholder-url.supabase.co") {
+            logger.info("Using mock authentication for development");
             // Mock successful sign-in for development
             set({
               user: { ...userData, id: "mock-user-id" } as User,
@@ -253,31 +368,50 @@ export const useAuthStore = create<AuthState>(
               isAuthenticated: true,
               isLoading: false,
             });
+            logger.debug("Auth state updated with mock user data");
           } else {
             // In production, we'd show a message to check email
             // For demo, we'll try to sign in directly
             try {
+              logger.debug("Attempting auto sign-in after registration");
               await get().signIn(email, password);
+              logger.info("Auto sign-in successful");
             } catch (signInError) {
-              console.log(
-                "Auto sign-in failed, user may need to confirm email"
+              logger.warn(
+                "Auto sign-in failed, user may need to confirm email",
+                signInError,
               );
               set({ isLoading: false });
+              logger.debug(
+                "Auth loading state set to false after auto sign-in failure",
+              );
               // We'll still consider this a successful registration
             }
           }
         } catch (error) {
-          console.error("Error signing up:", error);
+          logger.error("Error signing up:", error);
           set({ isLoading: false });
+          logger.debug("Auth loading state set to false after error");
           throw error;
         }
+        logger.debug("Completed sign up process");
       },
 
       signOut: async () => {
+        logger.info("Attempting to sign out user");
         try {
+          logger.debug("Setting loading state to true");
           set({ isLoading: true });
+
+          logger.debug("Calling Supabase signOut");
           const { error } = await supabase.auth.signOut();
-          if (error) throw error;
+
+          if (error) {
+            logger.error("Sign out failed", { errorMessage: error.message });
+            throw error;
+          }
+
+          logger.info("Sign out successful");
 
           set({
             user: null,
@@ -285,11 +419,14 @@ export const useAuthStore = create<AuthState>(
             isAuthenticated: false,
             isLoading: false,
           });
+          logger.debug("Auth state reset after sign out");
         } catch (error) {
-          console.error("Error signing out:", error);
+          logger.error("Error signing out:", error);
           set({ isLoading: false });
+          logger.debug("Auth loading state set to false after error");
           throw error;
         }
+        logger.debug("Completed sign out process");
       },
     }),
     {
@@ -300,31 +437,38 @@ export const useAuthStore = create<AuthState>(
         isAuthenticated: state.isAuthenticated,
         userType: state.userType,
       }),
-    }
-  )
+    },
+  ),
 );
 
 // Set up auth state change listener
 if (typeof window !== "undefined") {
+  logger.debug("Setting up auth state change listener");
   supabase.auth.onAuthStateChange(async (event, session) => {
+    logger.info(`Auth state changed: ${event}`, { hasSession: !!session });
     const authStore = useAuthStore.getState();
 
     if (event === "SIGNED_IN" && session) {
+      logger.debug("SIGNED_IN event detected, calling checkUser");
       await authStore.checkUser();
     } else if (event === "SIGNED_OUT") {
+      logger.debug("SIGNED_OUT event detected, resetting auth state");
       useAuthStore.setState({
         user: null,
         userType: null,
         isAuthenticated: false,
       });
+      logger.debug("Auth state reset after SIGNED_OUT event");
 
       // Redirect to login page on sign out
       if (typeof window !== "undefined") {
+        logger.debug("Redirecting to login page after sign out");
         window.location.href = "/login";
       }
     }
   });
 
   // Initial auth check
+  logger.info("Performing initial auth check on application load");
   useAuthStore.getState().checkUser();
 }
