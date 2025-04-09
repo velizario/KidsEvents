@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useEvents } from "@/hooks/useEvents";
-import { useAuth } from "@/context/AuthContext";
+import { useAuthStore } from "@/store/authStore";
 import { Event } from "@/types/models";
 
 // Mock data for registrations
@@ -78,7 +78,7 @@ const OrganizerDashboard = () => {
     error,
     fetchEventsByOrganizer,
   } = useEvents();
-  const { user } = useAuth();
+  const { user } = useAuthStore();
 
   useEffect(() => {
     const loadOrganizerEvents = async () => {

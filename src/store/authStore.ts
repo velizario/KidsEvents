@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { supabase } from "@/lib/supabase";
 import { User } from "@/types/models";
+import { useNavigate } from "react-router-dom";
 
 interface AuthState {
   user: User | null;
@@ -63,7 +64,83 @@ export const useAuthStore = create<AuthState>((set, get) => ({
               isLoading: false,
             });
           } else {
-            set({ isLoading: false });
+            // If profile doesn't exist yet (e.g., after email confirmation), create it
+            console.log("Profile not found, creating from user metadata");
+            const userData = {
+              id: user.id,
+              email: user.email,
+              firstName: user.user_metadata?.firstName || "",
+              lastName: user.user_metadata?.lastName || "",
+              userType: type,
+              phone: user.user_metadata?.phone || "",
+              organizationName: user.user_metadata?.organizationName,
+              contactName: user.user_metadata?.contactName,
+              description: user.user_metadata?.description,
+              website: user.user_metadata?.website,
+            };
+
+            // Create profile in the appropriate table
+            if (type === "parent") {
+              const { error: parentError } = await supabase
+                .from("parents")
+                .upsert(
+                  {
+                    id: user.id,
+                    email: user.email,
+                    first_name: userData.firstName || "",
+                    last_name: userData.lastName || "",
+                    phone: userData.phone || "",
+                  },
+                  { onConflict: "id" },
+                );
+
+              if (parentError) {
+                console.error(
+                  "Error creating parent profile after auth:",
+                  parentError,
+                );
+              }
+            } else {
+              const { error: organizerError } = await supabase
+                .from("organizers")
+                .upsert(
+                  {
+                    id: user.id,
+                    email: user.email,
+                    organization_name: userData.organizationName || "",
+                    contact_name: userData.contactName || "",
+                    description: userData.description || "",
+                    phone: userData.phone || "",
+                    website: userData.website || "",
+                  },
+                  { onConflict: "id" },
+                );
+
+              if (organizerError) {
+                console.error(
+                  "Error creating organizer profile after auth:",
+                  organizerError,
+                );
+              }
+            }
+
+            // Fetch the newly created profile
+            const { data: newProfile } = await supabase
+              .from(type === "parent" ? "parents" : "organizers")
+              .select("*")
+              .eq("id", user.id)
+              .single();
+
+            if (newProfile) {
+              set({
+                user: { ...newProfile, id: user.id, userType: type },
+                userType: type,
+                isAuthenticated: true,
+                isLoading: false,
+              });
+            } else {
+              set({ isLoading: false });
+            }
           }
         } else {
           set({ isLoading: false });
@@ -213,6 +290,11 @@ if (typeof window !== "undefined") {
         userType: null,
         isAuthenticated: false,
       });
+
+      // Redirect to login page on sign out
+      if (typeof window !== "undefined") {
+        window.location.href = "/login";
+      }
     }
   });
 

@@ -15,58 +15,55 @@ import OrganizerDashboard from "./components/dashboard/OrganizerDashboard";
 import ParentDashboard from "./components/dashboard/ParentDashboard";
 import routes from "tempo-routes";
 import EventFormWrapper from "./components/events/EventFormWrapper";
-import { AuthProvider } from "./context/AuthContext";
 
 function App() {
   return (
     <Suspense fallback={<p>Loading...</p>}>
-      <AuthProvider>
-        <div className="min-h-screen bg-background">
-          <Header />
-          <main>
-            {import.meta.env.VITE_TEMPO === "true" && useRoutes(routes)}
-            <Routes>
-              <Route path="/" element={<Home />} />
-              <Route path="/events" element={<EventsList />} />
-              <Route path="/events/filters" element={<EventFiltersPage />} />
-              <Route path="/events/:eventId" element={<EventDetails />} />
-              <Route path="/events/create" element={<EventFormWrapper />} />
+      <div className="min-h-screen bg-background">
+        <Header />
+        <main>
+          {import.meta.env.VITE_TEMPO === "true" && useRoutes(routes)}
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/events" element={<EventsList />} />
+            <Route path="/events/filters" element={<EventFiltersPage />} />
+            <Route path="/events/:eventId" element={<EventDetails />} />
+            <Route path="/events/create" element={<EventFormWrapper />} />
+            <Route
+              path="/events/:eventId/edit"
+              element={<EventFormWrapper />}
+            />
+            <Route
+              path="/events/:eventId/register"
+              element={<RegistrationForm />}
+            />
+            <Route
+              path="/events/:eventId/manage"
+              element={<EventManagement />}
+            />
+            <Route
+              path="/registrations/:registrationId"
+              element={<RegistrationDetails />}
+            />
+            <Route path="/login" element={<LoginForm />} />
+            <Route path="/register">
+              <Route index element={<RegisterForm userType="parent" />} />
               <Route
-                path="/events/:eventId/edit"
-                element={<EventFormWrapper />}
+                path="organizer"
+                element={<RegisterForm userType="organizer" />}
               />
-              <Route
-                path="/events/:eventId/register"
-                element={<RegistrationForm />}
-              />
-              <Route
-                path="/events/:eventId/manage"
-                element={<EventManagement />}
-              />
-              <Route
-                path="/registrations/:registrationId"
-                element={<RegistrationDetails />}
-              />
-              <Route path="/login" element={<LoginForm />} />
-              <Route path="/register">
-                <Route index element={<RegisterForm userType="parent" />} />
-                <Route
-                  path="organizer"
-                  element={<RegisterForm userType="organizer" />}
-                />
-              </Route>
-              <Route
-                path="/organizer/dashboard"
-                element={<OrganizerDashboard />}
-              />
-              <Route path="/parent/dashboard" element={<ParentDashboard />} />
-              {import.meta.env.VITE_TEMPO === "true" && (
-                <Route path="/tempobook/*" element={<div />} />
-              )}
-            </Routes>
-          </main>
-        </div>
-      </AuthProvider>
+            </Route>
+            <Route
+              path="/organizer/dashboard"
+              element={<OrganizerDashboard />}
+            />
+            <Route path="/parent/dashboard" element={<ParentDashboard />} />
+            {import.meta.env.VITE_TEMPO === "true" && (
+              <Route path="/tempobook/*" element={<div />} />
+            )}
+          </Routes>
+        </main>
+      </div>
     </Suspense>
   );
 }

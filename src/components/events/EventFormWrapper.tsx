@@ -4,7 +4,7 @@ import EventForm from "./EventForm";
 import { useEvents } from "@/hooks/useEvents";
 import { useToast } from "@/components/ui/use-toast";
 import { Loader2 } from "lucide-react";
-import { useAuth } from "@/context/AuthContext";
+import { useAuthStore } from "@/store/authStore";
 
 const EventFormWrapper = () => {
   const { createEvent, loading, error } = useEvents();
@@ -12,7 +12,7 @@ const EventFormWrapper = () => {
   const [success, setSuccess] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user } = useAuthStore();
 
   const handleSubmit = async (data) => {
     try {

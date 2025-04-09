@@ -9,11 +9,11 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import { useAuth } from "@/context/AuthContext";
+import { useAuthStore } from "@/store/authStore";
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const { user, isAuthenticated, userType, signOut } = useAuth();
+  const { user, isAuthenticated, userType, signOut } = useAuthStore();
   const navigate = useNavigate();
   const pathname = window.location.pathname;
 
