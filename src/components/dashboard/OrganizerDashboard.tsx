@@ -92,17 +92,17 @@ const OrganizerDashboard = () => {
     };
 
     loadOrganizerEvents();
-  }, [user, fetchEventsByOrganizer]);
+  }, [user]);
 
   useEffect(() => {
     if (fetchedEvents) {
       setEvents(fetchedEvents);
     }
-  }, [fetchedEvents]);
+  }, []);
 
   // Filter events based on search query
   const filteredEvents = events.filter((event) =>
-    event.title?.toLowerCase().includes(searchQuery.toLowerCase()),
+    event.title?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   // Filter registrations based on search query
@@ -111,7 +111,7 @@ const OrganizerDashboard = () => {
       registration.childName
         .toLowerCase()
         .includes(searchQuery.toLowerCase()) ||
-      registration.eventTitle.toLowerCase().includes(searchQuery.toLowerCase()),
+      registration.eventTitle.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   return (
