@@ -15,69 +15,71 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Checkbox } from "@/components/ui/checkbox";
-import { useAuth } from "@/context/AuthContext";
+import { useAuthStore } from "@/store/authStore";
 
 const formSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email address" }),
-  password: z
-    .string()
-    .min(8, { message: "Password must be at least 8 characters" }),
-  rememberMe: z.boolean().default(false),
+  password: z.string().min(1, { message: "Password is required" }),
 });
 
-type LoginFormValues = z.infer<typeof formSchema>;
+type FormValues = z.infer<typeof formSchema>;
 
-interface LoginFormProps {
-  onSubmit?: (data: LoginFormValues) => void;
-  userType?: "parent" | "organizer";
-}
-
-const LoginForm = ({ onSubmit = () => {} }: LoginFormProps) => {
-  const { signIn, userType } = useAuth();
-  const navigate = useNavigate();
+export function LoginForm() {
   const [showPassword, setShowPassword] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const navigate = useNavigate();
+  const { signIn, userType } = useAuthStore();
 
-  const form = useForm<LoginFormValues>({
+  const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       email: "",
       password: "",
-      rememberMe: false,
     },
   });
 
-  const handleSubmit = async (data: LoginFormValues) => {
-    console.log("Login form submitted:", data);
+  const onSubmit = async (data: FormValues) => {
+    setIsSubmitting(true);
+    setError(null);
     try {
-      // Use the actual authentication from context
       await signIn(data.email, data.password);
 
-      // After successful login, redirect to the appropriate dashboard
-      if (userType === "parent") {
-        navigate("/parent/dashboard");
-      } else if (userType === "organizer") {
+      // Redirect based on user type
+      if (data.email.includes("organizer")) {
         navigate("/organizer/dashboard");
+      } else {
+        navigate("/parent/dashboard");
       }
-
-      onSubmit(data);
-    } catch (error) {
-      console.error("Login error:", error);
-      // Handle login error
+    } catch (err) {
+      console.error("Login error:", err);
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Failed to login. Please check your credentials.",
+      );
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   return (
     <div className="w-full max-w-md mx-auto p-6 bg-white rounded-lg shadow-md">
       <div className="text-center mb-6">
-        <h2 className="text-2xl font-bold">Login</h2>
+        <h2 className="text-2xl font-bold">Welcome Back</h2>
         <p className="text-muted-foreground mt-2">
-          Welcome back! Please enter your details.
+          Sign in to your account to continue
         </p>
       </div>
 
+      {error && (
+        <div className="p-3 rounded-md mb-6 bg-destructive/10 text-destructive">
+          {error}
+        </div>
+      )}
+
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
           <FormField
             control={form.control}
             name="email"
@@ -104,15 +106,7 @@ const LoginForm = ({ onSubmit = () => {} }: LoginFormProps) => {
             name="password"
             render={({ field }) => (
               <FormItem>
-                <div className="flex justify-between items-center">
-                  <FormLabel>Password</FormLabel>
-                  <Link
-                    to="/forgot-password"
-                    className="text-sm text-primary hover:underline"
-                  >
-                    Forgot password?
-                  </Link>
-                </div>
+                <FormLabel>Password</FormLabel>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <FormControl>
@@ -141,28 +135,8 @@ const LoginForm = ({ onSubmit = () => {} }: LoginFormProps) => {
             )}
           />
 
-          <FormField
-            control={form.control}
-            name="rememberMe"
-            render={({ field }) => (
-              <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                <FormControl>
-                  <Checkbox
-                    checked={field.value}
-                    onCheckedChange={field.onChange}
-                  />
-                </FormControl>
-                <div className="space-y-1 leading-none">
-                  <FormLabel className="text-sm font-normal">
-                    Remember me for 30 days
-                  </FormLabel>
-                </div>
-              </FormItem>
-            )}
-          />
-
-          <Button type="submit" className="w-full mt-6">
-            Sign In
+          <Button type="submit" className="w-full mt-6" disabled={isSubmitting}>
+            {isSubmitting ? "Signing in..." : "Sign in"}
           </Button>
 
           <div className="text-center mt-6">
@@ -172,7 +146,7 @@ const LoginForm = ({ onSubmit = () => {} }: LoginFormProps) => {
                 to="/register"
                 className="text-primary font-medium hover:underline"
               >
-                Sign up
+                Create an account
               </Link>
             </p>
           </div>
@@ -180,6 +154,6 @@ const LoginForm = ({ onSubmit = () => {} }: LoginFormProps) => {
       </Form>
     </div>
   );
-};
+}
 
 export default LoginForm;

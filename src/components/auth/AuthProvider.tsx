@@ -1,5 +1,12 @@
-import { AuthProvider as SupabaseAuthProvider } from "@/context/AuthContext";
+import { useEffect } from "react";
+import { useAuthStore } from "@/store/authStore";
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-  return <SupabaseAuthProvider>{children}</SupabaseAuthProvider>;
+  const checkUser = useAuthStore((state) => state.checkUser);
+
+  useEffect(() => {
+    checkUser();
+  }, [checkUser]);
+
+  return <>{children}</>;
 };

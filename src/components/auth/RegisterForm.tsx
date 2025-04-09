@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { useAuth } from "@/context/AuthContext";
+import { useAuthStore } from "@/store/authStore";
 
 const parentSchema = z.object({
   firstName: z.string().min(2, { message: "First name is required" }),
@@ -58,7 +58,7 @@ const RegisterForm = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
-  const { signUp } = useAuth();
+  const { signUp } = useAuthStore();
 
   const parentForm = useForm<ParentFormValues>({
     resolver: zodResolver(parentSchema),
