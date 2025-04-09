@@ -31,7 +31,7 @@ const EventDetails = () => {
         console.error("Error fetching event:", err);
       });
     }
-  }, [eventId, fetchEvent]);
+  }, [eventId]);
 
   useEffect(() => {
     if (event) {
@@ -291,7 +291,9 @@ const EventDetails = () => {
                       <div
                         className="bg-primary h-2 rounded-full"
                         style={{
-                          width: `${(eventData.registrations / eventData.capacity) * 100}%`,
+                          width: `${
+                            (eventData.registrations / eventData.capacity) * 100
+                          }%`,
                         }}
                       ></div>
                     </div>

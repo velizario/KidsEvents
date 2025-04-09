@@ -34,7 +34,7 @@ function Home() {
     };
 
     loadEvents();
-  }, [fetchEvents]);
+  }, []);
 
   useEffect(() => {
     if (events && events.length > 0) {
@@ -91,7 +91,11 @@ function Home() {
               <button
                 key={category.name}
                 onClick={() => setSelectedCategory(category.name)}
-                className={`flex items-center px-4 py-2 rounded-full whitespace-nowrap transition-colors ${selectedCategory === category.name ? "bg-primary text-white" : "bg-muted hover:bg-muted/80"}`}
+                className={`flex items-center px-4 py-2 rounded-full whitespace-nowrap transition-colors ${
+                  selectedCategory === category.name
+                    ? "bg-primary text-white"
+                    : "bg-muted hover:bg-muted/80"
+                }`}
               >
                 <span className="mr-2">{category.icon}</span>
                 {category.name}
@@ -285,9 +289,7 @@ function Home() {
             </div>
           </div>
           <div className="border-t border-border mt-8 pt-8 text-center text-muted-foreground">
-            <p>
-              © {new Date().getFullYear()} KidsEvents. All rights reserved.
-            </p>
+            <p>© {new Date().getFullYear()} KidsEvents. All rights reserved.</p>
           </div>
         </div>
       </footer>

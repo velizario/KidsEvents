@@ -24,7 +24,7 @@ export const useEvents = () => {
     } catch (err) {
       console.error("Error fetching events:", err);
       setError(
-        err instanceof Error ? err : new Error("Failed to fetch events"),
+        err instanceof Error ? err : new Error("Failed to fetch events")
       );
       throw err;
     } finally {
@@ -44,7 +44,7 @@ export const useEvents = () => {
       setError(
         err instanceof Error
           ? err
-          : new Error("Failed to fetch organizer events"),
+          : new Error("Failed to fetch organizer events")
       );
       throw err;
     } finally {
@@ -73,7 +73,7 @@ export const useEvents = () => {
     eventData: Omit<
       Event,
       "id" | "organizerId" | "registrations" | "createdAt" | "updatedAt"
-    >,
+    >
   ) => {
     try {
       setLoading(true);
@@ -85,7 +85,7 @@ export const useEvents = () => {
     } catch (err) {
       console.error("Error creating event:", err);
       setError(
-        err instanceof Error ? err : new Error("Failed to create event"),
+        err instanceof Error ? err : new Error("Failed to create event")
       );
       throw err;
     } finally {
@@ -103,7 +103,7 @@ export const useEvents = () => {
     } catch (err) {
       console.error("Error updating event:", err);
       setError(
-        err instanceof Error ? err : new Error("Failed to update event"),
+        err instanceof Error ? err : new Error("Failed to update event")
       );
       throw err;
     } finally {
@@ -121,7 +121,7 @@ export const useEvents = () => {
     } catch (err) {
       console.error("Error deleting event:", err);
       setError(
-        err instanceof Error ? err : new Error("Failed to delete event"),
+        err instanceof Error ? err : new Error("Failed to delete event")
       );
       throw err;
     } finally {
@@ -140,7 +140,7 @@ export const useEvents = () => {
       setError(
         err instanceof Error
           ? err
-          : new Error("Failed to fetch event participants"),
+          : new Error("Failed to fetch event participants")
       );
       throw err;
     } finally {

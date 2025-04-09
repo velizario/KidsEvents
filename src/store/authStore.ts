@@ -12,7 +12,7 @@ interface AuthState {
   signUp: (
     email: string,
     password: string,
-    userData: Partial<User>,
+    userData: Partial<User>
   ) => Promise<void>;
   signOut: () => Promise<void>;
   checkUser: () => Promise<void>;
@@ -44,7 +44,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           // Get user profile data from the appropriate table
           const type = user.user_metadata?.userType || "parent";
           console.log(
-            `Fetching profile for user ${user.id} from ${type === "parent" ? "parents" : "organizers"}`,
+            `Fetching profile for user ${user.id} from ${
+              type === "parent" ? "parents" : "organizers"
+            }`
           );
           const { data: profile, error: profileError } = await supabase
             .from(type === "parent" ? "parents" : "organizers")
@@ -91,13 +93,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
                     last_name: userData.lastName || "",
                     phone: userData.phone || "",
                   },
-                  { onConflict: "id" },
+                  { onConflict: "id" }
                 );
 
               if (parentError) {
                 console.error(
                   "Error creating parent profile after auth:",
-                  parentError,
+                  parentError
                 );
               }
             } else {
@@ -113,13 +115,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
                     phone: userData.phone || "",
                     website: userData.website || "",
                   },
-                  { onConflict: "id" },
+                  { onConflict: "id" }
                 );
 
               if (organizerError) {
                 console.error(
                   "Error creating organizer profile after auth:",
-                  organizerError,
+                  organizerError
                 );
               }
             }
@@ -202,7 +204,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
             phone: userData.phone || "",
             // Using snake_case for database column names
           },
-          { onConflict: "id" },
+          { onConflict: "id" }
         );
 
         if (parentError) {
@@ -222,7 +224,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
               website: (userData as any).website || "",
               // Using snake_case for database column names
             },
-            { onConflict: "id" },
+            { onConflict: "id" }
           );
 
         if (organizerError) {
