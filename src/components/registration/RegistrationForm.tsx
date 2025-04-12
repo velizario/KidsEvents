@@ -1,8 +1,5 @@
-import { useState } from "react";
-import { useParams, Link } from "react-router-dom";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
+import { useParams, Link, useNavigate } from "react-router-dom";
+import { useEffect } from "react";
 import {
   ArrowLeft,
   Calendar,
@@ -11,6 +8,8 @@ import {
   Users,
   Plus,
   Trash2,
+  AlertCircle,
+  CheckCircle2,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -29,109 +28,48 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-
-// Mock event data
-const eventData = {
-  id: "1",
-  title: "Summer Art Camp",
-  description:
-    "A fun-filled week of creative art activities for children to explore their artistic talents.",
-  date: "July 15-19, 2023",
-  time: "9:00 AM - 12:00 PM",
-  location: "Community Arts Center, 123 Main St, Anytown",
-  ageGroup: "7-12 years",
-  category: "Arts & Crafts",
-  price: "$175",
-  imageUrl:
-    "https://images.unsplash.com/photo-1551966775-a4ddc8df052b?w=600&q=80",
-};
-
-const formSchema = z.object({
-  children: z
-    .array(
-      z.object({
-        firstName: z.string().min(2, { message: "First name is required" }),
-        lastName: z.string().min(2, { message: "Last name is required" }),
-        age: z
-          .string()
-          .refine((val) => !isNaN(parseInt(val)) && parseInt(val) > 0, {
-            message: "Please enter a valid age",
-          }),
-        allergies: z.string().optional(),
-        specialNeeds: z.string().optional(),
-      }),
-    )
-    .min(1, { message: "At least one child must be registered" }),
-  emergencyContact: z.object({
-    name: z.string().min(2, { message: "Emergency contact name is required" }),
-    phone: z.string().min(10, { message: "Please enter a valid phone number" }),
-    relationship: z.string().min(2, { message: "Relationship is required" }),
-  }),
-  paymentMethod: z.enum(["credit", "paypal"]),
-  termsAccepted: z.boolean().refine((val) => val === true, {
-    message: "You must accept the terms and conditions",
-  }),
-});
-
-type RegistrationFormValues = z.infer<typeof formSchema>;
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { useRegistrationForm } from "@/hooks/useRegistrationForm";
+import { useEvents } from "@/hooks/useEvents";
+import { registrationAPI } from "@/lib/api";
+import { Event } from "@/types/models";
 
 const RegistrationForm = () => {
   const { eventId } = useParams<{ eventId: string }>();
-  const [children, setChildren] = useState([{ id: 1 }]);
+  const navigate = useNavigate();
+  const {
+    form,
+    children,
+    addChild,
+    removeChild,
+    isSubmitting,
+    submitError,
+    submitSuccess,
+    setIsSubmitting,
+    setSubmitError,
+    setSubmitSuccess,
+  } = useRegistrationForm();
 
-  // In a real app, you would fetch the event data based on the eventId
-  // const event = useEvent(eventId);
+  const {
+    event,
+    loading: eventLoading,
+    error: eventError,
+    fetchEvent,
+  } = useEvents();
 
-  const form = useForm<RegistrationFormValues>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      children: [
-        {
-          firstName: "",
-          lastName: "",
-          age: "",
-          allergies: "",
-          specialNeeds: "",
-        },
-      ],
-      emergencyContact: {
-        name: "",
-        phone: "",
-        relationship: "",
-      },
-      paymentMethod: "credit",
-      termsAccepted: false,
-    },
-  });
-
-  const addChild = () => {
-    setChildren([...children, { id: children.length + 1 }]);
-    const currentChildren = form.getValues().children;
-    form.setValue("children", [
-      ...currentChildren,
-      {
-        firstName: "",
-        lastName: "",
-        age: "",
-        allergies: "",
-        specialNeeds: "",
-      },
-    ]);
-  };
-
-  const removeChild = (index: number) => {
-    if (children.length > 1) {
-      const newChildren = [...children];
-      newChildren.splice(index, 1);
-      setChildren(newChildren);
-
-      const currentChildren = form.getValues().children;
-      currentChildren.splice(index, 1);
-      form.setValue("children", currentChildren);
+  // Fetch event data when component mounts
+  useEffect(() => {
+    if (eventId) {
+      fetchEvent(eventId);
     }
-  };
+  }, [eventId, fetchEvent]);
 
-  const onSubmit = (data: RegistrationFormValues) => {
+  const onSubmit = async (data: any) => {
+    if (!eventId) {
+      setSubmitError(new Error("Event ID is missing"));
+      return;
+    }
+
     console.log("Registration submitted:", data);
     // In a real app, you would submit the registration to your backend
     // and then redirect to a confirmation page
@@ -429,11 +367,37 @@ const RegistrationForm = () => {
                   </Card>
                 </div>
 
+                {submitSuccess && (
+                  <Alert className="mb-4" variant="default">
+                    <CheckCircle2 className="h-4 w-4" />
+                    <AlertTitle>Success</AlertTitle>
+                    <AlertDescription>
+                      Registration completed successfully!
+                    </AlertDescription>
+                  </Alert>
+                )}
+
+                {submitError && (
+                  <Alert className="mb-4" variant="destructive">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertTitle>Error</AlertTitle>
+                    <AlertDescription>
+                      {submitError.message ||
+                        "Failed to complete registration. Please try again."}
+                    </AlertDescription>
+                  </Alert>
+                )}
+
                 <div className="flex justify-end space-x-4">
                   <Button type="button" variant="outline" asChild>
                     <Link to={`/events/${eventId}`}>Cancel</Link>
                   </Button>
-                  <Button type="submit">Complete Registration</Button>
+                  <Button
+                    type="submit"
+                    disabled={isSubmitting || eventLoading || !event}
+                  >
+                    {isSubmitting ? "Submitting..." : "Complete Registration"}
+                  </Button>
                 </div>
               </form>
             </Form>
@@ -442,85 +406,108 @@ const RegistrationForm = () => {
           {/* Event Summary */}
           <div>
             <div className="sticky top-20">
-              <Card>
-                <CardContent className="p-6 space-y-6">
-                  <div>
-                    <h2 className="text-xl font-semibold mb-4">
-                      Event Summary
-                    </h2>
-                    <div className="aspect-video w-full overflow-hidden rounded-lg mb-4">
-                      <img
-                        src={eventData.imageUrl}
-                        alt={eventData.title}
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                    <h3 className="text-lg font-medium mb-1">
-                      {eventData.title}
-                    </h3>
-                    <Badge className="mb-2">{eventData.category}</Badge>
-                    <p className="text-muted-foreground text-sm mb-4">
-                      {eventData.description}
-                    </p>
-                  </div>
+              {eventLoading && (
+                <div className="flex items-center justify-center h-40">
+                  <p>Loading event details...</p>
+                </div>
+              )}
 
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-3">
-                      <Calendar className="h-5 w-5 text-muted-foreground" />
-                      <div>
-                        <p className="text-sm text-muted-foreground">Date</p>
-                        <p className="font-medium">{eventData.date}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <Clock className="h-5 w-5 text-muted-foreground" />
-                      <div>
-                        <p className="text-sm text-muted-foreground">Time</p>
-                        <p className="font-medium">{eventData.time}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <MapPin className="h-5 w-5 text-muted-foreground" />
-                      <div>
-                        <p className="text-sm text-muted-foreground">
-                          Location
-                        </p>
-                        <p className="font-medium">{eventData.location}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <Users className="h-5 w-5 text-muted-foreground" />
-                      <div>
-                        <p className="text-sm text-muted-foreground">
-                          Age Group
-                        </p>
-                        <p className="font-medium">{eventData.ageGroup}</p>
-                      </div>
-                    </div>
-                  </div>
+              {eventError && (
+                <Alert variant="destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertTitle>Error</AlertTitle>
+                  <AlertDescription>
+                    Failed to load event details. Please try again.
+                  </AlertDescription>
+                </Alert>
+              )}
 
-                  <div className="border-t border-border pt-4">
-                    <div className="flex justify-between items-center">
-                      <p className="text-sm text-muted-foreground">
-                        Price per child
-                      </p>
-                      <p className="font-medium">{eventData.price}</p>
-                    </div>
-                    <div className="flex justify-between items-center mt-2">
-                      <p className="text-sm text-muted-foreground">Children</p>
-                      <p className="font-medium">{children.length}</p>
-                    </div>
-                    <div className="flex justify-between items-center mt-2 text-lg font-bold">
-                      <p>Total</p>
-                      <p>
-                        $
-                        {parseInt(eventData.price.replace("$", "")) *
-                          children.length}
+              {event && (
+                <Card>
+                  <CardContent className="p-6 space-y-6">
+                    <div>
+                      <h2 className="text-xl font-semibold mb-4">
+                        Event Summary
+                      </h2>
+                      <div className="aspect-video w-full overflow-hidden rounded-lg mb-4">
+                        <img
+                          src={
+                            event.imageUrl ||
+                            "https://images.unsplash.com/photo-1551966775-a4ddc8df052b?w=600&q=80"
+                          }
+                          alt={event.title}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      <h3 className="text-lg font-medium mb-1">
+                        {event.title}
+                      </h3>
+                      <Badge className="mb-2">{event.category}</Badge>
+                      <p className="text-muted-foreground text-sm mb-4">
+                        {event.description}
                       </p>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
+
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-3">
+                        <Calendar className="h-5 w-5 text-muted-foreground" />
+                        <div>
+                          <p className="text-sm text-muted-foreground">Date</p>
+                          <p className="font-medium">{event.date}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <Clock className="h-5 w-5 text-muted-foreground" />
+                        <div>
+                          <p className="text-sm text-muted-foreground">Time</p>
+                          <p className="font-medium">{event.time}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <MapPin className="h-5 w-5 text-muted-foreground" />
+                        <div>
+                          <p className="text-sm text-muted-foreground">
+                            Location
+                          </p>
+                          <p className="font-medium">{event.location}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <Users className="h-5 w-5 text-muted-foreground" />
+                        <div>
+                          <p className="text-sm text-muted-foreground">
+                            Age Group
+                          </p>
+                          <p className="font-medium">{event.ageGroup}</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="border-t border-border pt-4">
+                      <div className="flex justify-between items-center">
+                        <p className="text-sm text-muted-foreground">
+                          Price per child
+                        </p>
+                        <p className="font-medium">{event.price}</p>
+                      </div>
+                      <div className="flex justify-between items-center mt-2">
+                        <p className="text-sm text-muted-foreground">
+                          Children
+                        </p>
+                        <p className="font-medium">{children.length}</p>
+                      </div>
+                      <div className="flex justify-between items-center mt-2 text-lg font-bold">
+                        <p>Total</p>
+                        <p>
+                          $
+                          {parseInt(event.price?.replace("$", "") || "0") *
+                            children.length}
+                        </p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
             </div>
           </div>
         </div>

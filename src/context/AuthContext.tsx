@@ -10,7 +10,7 @@ interface AuthContextType {
   signUp: (
     email: string,
     password: string,
-    userData: Partial<User>,
+    userData: Partial<User>
   ) => Promise<void>;
   signOut: () => Promise<void>;
   isAuthenticated: boolean;
@@ -49,7 +49,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
             // Get user profile data from the appropriate table
             const type = user.user_metadata?.userType || "parent";
             console.log(
-              `Fetching profile for user ${user.id} from ${type === "parent" ? "parents" : "organizers"}`,
+              `Fetching profile for user ${user.id} from ${
+                type === "parent" ? "parents" : "organizers"
+              }`
             );
             const { data: profile, error: profileError } = await supabase
               .from(type === "parent" ? "parents" : "organizers")
@@ -88,7 +90,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
             // Get user profile data
             const type = user.user_metadata?.userType || "parent";
             console.log(
-              `Fetching profile for user ${user.id} from ${type === "parent" ? "parents" : "organizers"}`,
+              `Fetching profile for user ${user.id} from ${
+                type === "parent" ? "parents" : "organizers"
+              }`
             );
             const { data: profile, error: profileError } = await supabase
               .from(type === "parent" ? "parents" : "organizers")
@@ -132,13 +136,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
                       last_name: userData.lastName || "",
                       phone: userData.phone || "",
                     },
-                    { onConflict: "id" },
+                    { onConflict: "id" }
                   );
 
                 if (parentError) {
                   console.error(
                     "Error creating parent profile after auth:",
-                    parentError,
+                    parentError
                   );
                 }
               } else {
@@ -154,13 +158,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
                       phone: userData.phone || "",
                       website: userData.website || "",
                     },
-                    { onConflict: "id" },
+                    { onConflict: "id" }
                   );
 
                 if (organizerError) {
                   console.error(
                     "Error creating organizer profile after auth:",
-                    organizerError,
+                    organizerError
                   );
                 }
               }
@@ -185,7 +189,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           setIsAuthenticated(false);
           navigate("/login");
         }
-      },
+      }
     );
 
     return () => {
@@ -214,7 +218,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const signUp = async (
     email: string,
     password: string,
-    userData: Partial<User>,
+    userData: Partial<User>
   ) => {
     try {
       setIsLoading(true);
@@ -245,7 +249,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
             phone: userData.phone || "",
             // Using snake_case for database column names
           },
-          { onConflict: "id" },
+          { onConflict: "id" }
         );
 
         if (parentError) {
@@ -265,7 +269,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
               website: (userData as any).website || "",
               // Using snake_case for database column names
             },
-            { onConflict: "id" },
+            { onConflict: "id" }
           );
 
         if (organizerError) {

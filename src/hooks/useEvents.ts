@@ -16,6 +16,7 @@ export const useEvents = () => {
     search?: string;
   }) => {
     try {
+      console.log("Fetching events with filters:", filters);
       setLoading(true);
       setError(null);
       const data = await eventAPI.getAllEvents(filters);
@@ -34,9 +35,11 @@ export const useEvents = () => {
 
   const fetchEventsByOrganizer = async (organizerId: string) => {
     try {
+      console.log("Fetching events by organizer:", organizerId);
       setLoading(true);
       setError(null);
       const data = await eventAPI.getEventsByOrganizer(organizerId);
+      console.log("Fetched events by organizer:", data);
       setEvents(data);
       return data;
     } catch (err) {
@@ -54,6 +57,7 @@ export const useEvents = () => {
 
   const fetchEvent = async (eventId: string) => {
     try {
+      console.log("Fetching event with ID:", eventId);
       setLoading(true);
       setError(null);
       const data = await eventAPI.getEvent(eventId);
@@ -76,6 +80,7 @@ export const useEvents = () => {
     >
   ) => {
     try {
+      console.log("Creating event with data:", eventData);
       setLoading(true);
       setError(null);
       const data = await eventAPI.createEvent(organizerId, eventData);
@@ -95,6 +100,7 @@ export const useEvents = () => {
 
   const updateEvent = async (eventId: string, eventData: Partial<Event>) => {
     try {
+      console.log("Updating event with ID:", eventId, "and data:", eventData);
       setLoading(true);
       setError(null);
       const data = await eventAPI.updateEvent(eventId, eventData);
@@ -113,6 +119,7 @@ export const useEvents = () => {
 
   const deleteEvent = async (eventId: string) => {
     try {
+      console.log("Deleting event with ID:", eventId);
       setLoading(true);
       setError(null);
       await eventAPI.deleteEvent(eventId);
@@ -131,6 +138,7 @@ export const useEvents = () => {
 
   const fetchEventParticipants = async (eventId: string) => {
     try {
+      console.log("Fetching participants for event ID:", eventId);
       setLoading(true);
       setError(null);
       const data = await eventAPI.getEventParticipants(eventId);

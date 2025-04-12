@@ -92,13 +92,14 @@ const OrganizerDashboard = () => {
     };
 
     loadOrganizerEvents();
-  }, [user]);
+  }, [user?.id]); // Only depend on user ID, not the function reference
 
+  // Set events when fetchedEvents changes
   useEffect(() => {
     if (fetchedEvents) {
       setEvents(fetchedEvents);
     }
-  }, []);
+  }, [fetchedEvents]);
 
   // Filter events based on search query
   const filteredEvents = events.filter((event) =>

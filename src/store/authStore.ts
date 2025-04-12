@@ -306,11 +306,13 @@ export const useAuthStore = create<AuthState>(
 
 // Set up auth state change listener
 if (typeof window !== "undefined") {
-  supabase.auth.onAuthStateChange(async (event, session) => {
+  const { data } = supabase.auth.onAuthStateChange(async (event, session) => {
     const authStore = useAuthStore.getState();
 
     if (event === "SIGNED_IN" && session) {
-      await authStore.checkUser();
+      setTimeout(async () => {
+        await authStore.checkUser();
+      }, 0);
     } else if (event === "SIGNED_OUT") {
       useAuthStore.setState({
         user: null,
