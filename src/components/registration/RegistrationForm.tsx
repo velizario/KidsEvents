@@ -3,7 +3,7 @@ import {
   Link,
   useNavigate as useRouterNavigate,
 } from "react-router-dom";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import {
   ArrowLeft,
   Calendar,
@@ -41,11 +41,13 @@ import { Event } from "@/types/models";
 interface RegistrationFormProps {
   useParamsHook?: typeof useRouterParams;
   useNavigateHook?: typeof useRouterNavigate;
+  mockEvent?: Event; // Add mockEvent prop for storyboards
 }
 
 const RegistrationForm = ({
   useParamsHook = useRouterParams,
   useNavigateHook = useRouterNavigate,
+  mockEvent = null,
 }: RegistrationFormProps) => {
   const { eventId } = useParamsHook<{ eventId: string }>();
   const navigate = useNavigateHook();
@@ -56,28 +58,43 @@ const RegistrationForm = ({
     removeChild,
     isSubmitting,
     submitError,
-    submitSuccess,
     setIsSubmitting,
     setSubmitError,
     setSubmitSuccess,
+    submitSuccess,
   } = useRegistrationForm();
 
   const {
-    event,
+    event: fetchedEvent,
     loading: eventLoading,
     error: eventError,
     fetchEvent,
   } = useEvents();
 
+  // Use mockEvent if provided, otherwise use fetchedEvent
+  const [event, setEvent] = useState<Event | null>(mockEvent);
+
   // Fetch event data when component mounts
   useEffect(() => {
+    if (mockEvent) {
+      setEvent(mockEvent);
+      return;
+    }
+
     if (eventId) {
       fetchEvent(eventId);
     }
-  }, [eventId, fetchEvent]);
+  }, [eventId, fetchEvent, mockEvent]);
+
+  // Update event when fetchedEvent changes
+  useEffect(() => {
+    if (!mockEvent && fetchedEvent) {
+      setEvent(fetchedEvent);
+    }
+  }, [fetchedEvent, mockEvent]);
 
   const onSubmit = async (data: any) => {
-    if (!eventId) {
+    if (!eventId && !mockEvent) {
       setSubmitError(new Error("Event ID is missing"));
       return;
     }
@@ -95,7 +112,7 @@ const RegistrationForm = ({
         <div className="container mx-auto px-4 py-6">
           <div className="flex items-center gap-2">
             <Button variant="ghost" size="icon" asChild>
-              <Link to={`/events/${eventId}`}>
+              <Link to={`/events/${eventId || "mock-event-id"}`}>
                 <ArrowLeft className="h-5 w-5" />
               </Link>
             </Button>
@@ -402,11 +419,15 @@ const RegistrationForm = ({
 
                 <div className="flex justify-end space-x-4">
                   <Button type="button" variant="outline" asChild>
-                    <Link to={`/events/${eventId}`}>Cancel</Link>
+                    <Link to={`/events/${eventId || "mock-event-id"}`}>
+                      Cancel
+                    </Link>
                   </Button>
                   <Button
                     type="submit"
-                    disabled={isSubmitting || eventLoading || !event}
+                    disabled={
+                      isSubmitting || (eventLoading && !mockEvent) || !event
+                    }
                   >
                     {isSubmitting ? "Submitting..." : "Complete Registration"}
                   </Button>
@@ -418,13 +439,13 @@ const RegistrationForm = ({
           {/* Event Summary */}
           <div>
             <div className="sticky top-20">
-              {eventLoading && (
+              {eventLoading && !mockEvent && !event && (
                 <div className="flex items-center justify-center h-40">
                   <p>Loading event details...</p>
                 </div>
               )}
 
-              {eventError && (
+              {eventError && !mockEvent && (
                 <Alert variant="destructive">
                   <AlertCircle className="h-4 w-4" />
                   <AlertTitle>Error</AlertTitle>

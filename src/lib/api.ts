@@ -49,7 +49,7 @@ export const authAPI = {
   register: async (
     email: string,
     password: string,
-    userData: Partial<User>
+    userData: Partial<User>,
   ) => {
     if (isPlaceholderUrl) {
       console.log("Mock register:", { email, userData });
@@ -79,7 +79,7 @@ export const authAPI = {
           city: userData.city,
           state: userData.state,
           zipCode: userData.zipCode,
-        })
+        }),
       );
     } else {
       await supabase.from("organizers").insert(
@@ -95,7 +95,7 @@ export const authAPI = {
           state: userData.state,
           zipCode: userData.zipCode,
           website: (userData as Partial<Organizer>).website,
-        })
+        }),
       );
     }
 
@@ -149,21 +149,53 @@ export const authAPI = {
     }
 
     const table = userType === "parent" ? "parents" : "organizers";
-    const { data, error } = await supabase
-      .from(table)
-      .select("*")
-      .eq("id", userId)
-      .single();
+    try {
+      // First check if the user exists
+      const { data: checkData, error: checkError } = await supabase
+        .from(table)
+        .select("id")
+        .eq("id", userId);
 
-    if (error) throw error;
-    return convertObjectToCamelCase(data);
+      if (checkError) throw checkError;
+
+      // If no user found, throw a custom error
+      if (!checkData || checkData.length === 0) {
+        throw new Error(`No ${userType} found with id: ${userId}`);
+      }
+
+      // If multiple users found (shouldn't happen), log warning and use first one
+      if (checkData.length > 1) {
+        console.warn(
+          `Multiple ${userType} profiles found with id: ${userId}. Using first one.`,
+        );
+      }
+
+      // Get the full user data
+      const { data, error } = await supabase
+        .from(table)
+        .select("*")
+        .eq("id", userId)
+        .limit(1)
+        .single();
+
+      if (error) throw error;
+      return convertObjectToCamelCase(data);
+    } catch (error) {
+      console.error(`Error fetching ${userType} profile:`, error);
+      // Return mock data when in development to prevent app crashes
+      if (process.env.NODE_ENV === "development") {
+        console.warn(`Returning mock ${userType} data for development`);
+        return mockUsers[userType];
+      }
+      throw error;
+    }
   },
 
   // Update user profile
   updateUserProfile: async (
     userId: string,
     userType: "parent" | "organizer",
-    userData: Partial<Parent | Organizer>
+    userData: Partial<Parent | Organizer>,
   ) => {
     if (isPlaceholderUrl) {
       console.log("Mock updateUserProfile:", { userId, userType, userData });
@@ -186,7 +218,7 @@ export const parentAPI = {
   // Add a child to parent
   addChild: async (
     parentId: string,
-    childData: Omit<Child, "id" | "parentId">
+    childData: Omit<Child, "id" | "parentId">,
   ) => {
     if (isPlaceholderUrl) {
       console.log("Mock addChild:", { parentId, childData });
@@ -203,7 +235,7 @@ export const parentAPI = {
         convertObjectToSnakeCase({
           ...childData,
           parentId,
-        })
+        }),
       )
       .select();
 
@@ -321,7 +353,7 @@ export const parentAPI = {
         *,
         events (*),
         children (*)
-      `
+      `,
       )
       .eq("parent_id", parentId);
 
@@ -338,7 +370,7 @@ export const eventAPI = {
     eventData: Omit<
       Event,
       "id" | "organizerId" | "registrations" | "createdAt" | "updatedAt"
-    >
+    >,
   ) => {
     if (isPlaceholderUrl) {
       console.log("Mock createEvent:", { organizerId, eventData });
@@ -359,7 +391,7 @@ export const eventAPI = {
           ...eventData,
           organizerId,
           registrations: 0,
-        })
+        }),
       )
       .select();
 
@@ -435,7 +467,7 @@ export const eventAPI = {
 
       if (filters.search) {
         query = query.or(
-          `title.ilike.%${filters.search}%,description.ilike.%${filters.search}%`
+          `title.ilike.%${filters.search}%,description.ilike.%${filters.search}%`,
         );
       }
     }
@@ -475,7 +507,7 @@ export const eventAPI = {
         `
         *,
         organizers (*)
-      `
+      `,
       )
       .eq("id", eventId)
       .single();
@@ -497,7 +529,7 @@ export const eventAPI = {
         `
         *,
         children (*)
-      `
+      `,
       )
       .eq("event_id", eventId);
 
@@ -519,7 +551,7 @@ export const eventAPI = {
           }
 
           return { ...registration, parent: parentData };
-        })
+        }),
       );
 
       return convertObjectToCamelCase(registrationsWithParents);
@@ -543,7 +575,7 @@ export const registrationAPI = {
         relationship: string;
       };
       paymentMethod?: string;
-    }
+    },
   ) => {
     if (isPlaceholderUrl) {
       console.log("Mock registerForEvent:", { eventId, registrationData });
@@ -577,7 +609,7 @@ export const registrationAPI = {
     const confirmationCode = `${event.category
       .substring(0, 3)
       .toUpperCase()}-${new Date().getFullYear()}-${Math.floor(
-      1000 + Math.random() * 9000
+      1000 + Math.random() * 9000,
     )}`;
 
     // Create registration
@@ -593,7 +625,7 @@ export const registrationAPI = {
           confirmationCode,
           registrationDate: new Date().toISOString(),
           emergencyContact: registrationData.emergencyContact,
-        })
+        }),
       )
       .select();
 
@@ -635,7 +667,7 @@ export const registrationAPI = {
           status: "cancelled",
           paymentStatus:
             registration.payment_status === "paid" ? "refunded" : "cancelled",
-        })
+        }),
       )
       .eq("id", registrationId)
       .select();
@@ -672,7 +704,7 @@ export const registrationAPI = {
         *,
         events (*),
         children (*)
-      `
+      `,
       )
       .eq("id", registrationId)
       .single();
@@ -701,7 +733,7 @@ export const registrationAPI = {
   // Update registration status (for organizers)
   updateRegistrationStatus: async (
     registrationId: string,
-    status: "pending" | "confirmed" | "cancelled"
+    status: "pending" | "confirmed" | "cancelled",
   ) => {
     if (isPlaceholderUrl) {
       console.log("Mock updateRegistrationStatus:", { registrationId, status });
@@ -725,7 +757,7 @@ export const registrationAPI = {
   // Update payment status (for organizers)
   updatePaymentStatus: async (
     registrationId: string,
-    paymentStatus: "pending" | "paid" | "refunded"
+    paymentStatus: "pending" | "paid" | "refunded",
   ) => {
     if (isPlaceholderUrl) {
       console.log("Mock updatePaymentStatus:", {
@@ -759,7 +791,7 @@ export const reviewAPI = {
     reviewData: {
       rating: number;
       comment: string;
-    }
+    },
   ) => {
     if (isPlaceholderUrl) {
       console.log("Mock createReview:", { eventId, parentId, reviewData });
@@ -784,7 +816,7 @@ export const reviewAPI = {
           rating: reviewData.rating,
           comment: reviewData.comment,
           date: new Date().toISOString(),
-        })
+        }),
       )
       .select();
 
@@ -809,7 +841,7 @@ export const reviewAPI = {
         `
         *,
         parents (first_name, last_name)
-      `
+      `,
       )
       .eq("event_id", eventId);
 
@@ -831,7 +863,7 @@ export const reviewAPI = {
         *,
         events (id, title, organizer_id),
         parents (first_name, last_name)
-      `
+      `,
       )
       .eq("events.organizer_id", organizerId);
 
@@ -861,7 +893,7 @@ async function updateOrganizerRating(eventId: string) {
       `
       rating,
       events!inner (organizer_id)
-    `
+    `,
     )
     .eq("events.organizer_id", event.organizer_id);
 
