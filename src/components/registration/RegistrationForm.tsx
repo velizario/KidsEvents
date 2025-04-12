@@ -1,4 +1,8 @@
-import { useParams, Link, useNavigate } from "react-router-dom";
+import {
+  useParams as useRouterParams,
+  Link,
+  useNavigate as useRouterNavigate,
+} from "react-router-dom";
 import { useEffect } from "react";
 import {
   ArrowLeft,
@@ -34,9 +38,17 @@ import { useEvents } from "@/hooks/useEvents";
 import { registrationAPI } from "@/lib/api";
 import { Event } from "@/types/models";
 
-const RegistrationForm = () => {
-  const { eventId } = useParams<{ eventId: string }>();
-  const navigate = useNavigate();
+interface RegistrationFormProps {
+  useParamsHook?: typeof useRouterParams;
+  useNavigateHook?: typeof useRouterNavigate;
+}
+
+const RegistrationForm = ({
+  useParamsHook = useRouterParams,
+  useNavigateHook = useRouterNavigate,
+}: RegistrationFormProps) => {
+  const { eventId } = useParamsHook<{ eventId: string }>();
+  const navigate = useNavigateHook();
   const {
     form,
     children,
