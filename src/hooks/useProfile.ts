@@ -44,10 +44,14 @@ export const useProfile = () => {
   const updateParentProfile = async (
     parentId: string,
     profileData: Partial<Parent>,
+    childrenData?: Partial<Child>[],
   ) => {
+    // Log the children data being received
+    console.log("Children data received in updateParentProfile:", childrenData);
     logger.debug("Starting updateParentProfile", {
       parentId,
       updateFields: Object.keys(profileData),
+      childrenCount: childrenData?.length || 0,
     });
     try {
       logger.debug("Setting loading state to true");
@@ -70,6 +74,38 @@ export const useProfile = () => {
         updatedProfileData,
       );
       logger.debug("Received updated parent profile data", { parentId });
+
+      // Process children data if provided
+      if (childrenData && childrenData.length > 0) {
+        logger.info("Processing children updates", {
+          childCount: childrenData.length,
+        });
+
+        // Get existing children to compare
+        const existingChildren = await getChildren(parentId);
+        const existingChildrenMap = new Map(
+          existingChildren.map((child) => [child.id, child]),
+        );
+
+        // Process each child in the update data
+        for (const childData of childrenData) {
+          if (childData.id) {
+            // Update existing child
+            logger.debug("Updating existing child", { childId: childData.id });
+            await updateChild(childData.id, childData);
+          } else {
+            // Add new child
+            logger.debug("Adding new child", {
+              childName: `${childData.firstName} ${childData.lastName}`,
+            });
+            await addChild(parentId, {
+              firstName: childData.firstName || "",
+              lastName: childData.lastName || "",
+              dateOfBirth: childData.dateOfBirth || "",
+            });
+          }
+        }
+      }
 
       logger.info("Successfully updated parent profile", { parentId });
       // Clear any cached profile data to ensure fresh data is fetched

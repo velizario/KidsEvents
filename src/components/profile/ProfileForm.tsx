@@ -32,7 +32,7 @@ const parentProfileSchema = z.object({
       firstName: z.string().min(2, { message: "First name is required" }),
       lastName: z.string().min(2, { message: "Last name is required" }),
       dateOfBirth: z.string().min(1, { message: "Date of birth is required" }),
-    })
+    }),
   ),
 });
 
@@ -60,7 +60,7 @@ interface ProfileFormProps {
   userType: "parent" | "organizer";
   initialData?: ParentProfileFormValues | OrganizerProfileFormValues;
   onSubmit?: (
-    data: ParentProfileFormValues | OrganizerProfileFormValues
+    data: ParentProfileFormValues | OrganizerProfileFormValues,
   ) => void;
 }
 
@@ -126,7 +126,7 @@ const ProfileForm = ({
           setChildren(
             (user as any).children.map((child: any, index: number) => ({
               id: child.id || index + 1,
-            }))
+            })),
           );
         }
       } else {
@@ -179,20 +179,35 @@ const ProfileForm = ({
 
     setIsSubmitting(true);
     try {
-      await updateParentProfile(user.id, {
-        firstName: data.firstName,
-        lastName: data.lastName,
-        email: data.email,
-        phone: data.phone,
-        // Children will be handled separately
+      // Prepare children data for update
+      const childrenData = data.children.map((child, index) => {
+        // If we have existing children with IDs, preserve them
+        const existingChild = (user as any)?.children?.[index];
+        return {
+          id: existingChild?.id, // Will be undefined for new children
+          firstName: child.firstName,
+          lastName: child.lastName,
+          dateOfBirth: child.dateOfBirth,
+          parentId: user.id,
+        };
       });
 
-      // Handle children updates here if needed
+      console.log(
+        "Children data prepared in handleParentSubmit:",
+        childrenData,
+      );
 
-      toast({
-        title: "Success",
-        description: "Your profile has been updated",
-      });
+      // Update parent profile with children data
+      await updateParentProfile(
+        user.id,
+        {
+          firstName: data.firstName,
+          lastName: data.lastName,
+          email: data.email,
+          phone: data.phone,
+        },
+        childrenData,
+      );
 
       // Force a refresh of the user data in the store
       await checkUser({ forceProfileRefresh: true });
