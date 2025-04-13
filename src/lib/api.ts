@@ -163,15 +163,54 @@ export const authAPI = {
       }
 
       // Get the full user data
-      const { data, error } = await supabase
-        .from(table)
-        .select("*")
-        .eq("id", userId)
-        .limit(1)
-        .single();
+      let userData;
 
-      if (error) throw error;
-      return convertObjectToCamelCase(data);
+      if (userType === "parent") {
+        // For parents, also fetch their children
+        const { data, error } = await supabase
+          .from(table)
+          .select("*")
+          .eq("id", userId)
+          .limit(1)
+          .single();
+
+        if (error) throw error;
+
+        // Get children data for this parent
+        const { data: childrenData, error: childrenError } = await supabase
+          .from("children")
+          .select("*")
+          .eq("parent_id", userId);
+
+        if (childrenError) {
+          console.error("Error fetching children:", childrenError);
+          // Continue with parent data even if children fetch fails
+        }
+
+        // Add children to parent data
+        userData = {
+          ...data,
+          children: childrenData || [],
+        };
+
+        console.log("Fetched parent profile with children:", {
+          parentId: userId,
+          childrenCount: childrenData?.length || 0,
+        });
+      } else {
+        // For organizers, just get their data
+        const { data, error } = await supabase
+          .from(table)
+          .select("*")
+          .eq("id", userId)
+          .limit(1)
+          .single();
+
+        if (error) throw error;
+        userData = data;
+      }
+
+      return convertObjectToCamelCase(userData);
     } catch (error) {
       console.error(`Error fetching ${userType} profile:`, error);
       // Return mock data when in development to prevent app crashes
@@ -189,97 +228,132 @@ export const authAPI = {
     userType: "parent" | "organizer",
     userData: Partial<Parent | Organizer>,
     childrenData?: Partial<Child>[],
+    deletedChildrenIds?: string[],
   ) => {
     // Log the children data being received
     console.log("Children data received in updateUserProfile:", childrenData);
+    console.log("Deleted children IDs:", deletedChildrenIds);
+
     if (isPlaceholderUrl) {
       console.log("Mock updateUserProfile:", {
         userId,
         userType,
         userData,
         childrenData,
+        deletedChildrenIds,
       });
       return { ...mockUsers[userType], ...userData };
     }
 
+    // Start a Supabase transaction
     const table = userType === "parent" ? "parents" : "organizers";
-    const { data, error } = await supabase
-      .from(table)
-      .update(convertObjectToSnakeCase(userData))
-      .eq("id", userId);
 
-    if (error) throw error;
+    try {
+      // 1. Update the user profile
+      const { data, error } = await supabase
+        .from(table)
+        .update(convertObjectToSnakeCase(userData))
+        .eq("id", userId);
 
-    // Handle children data if provided and user is a parent
-    if (userType === "parent" && childrenData && childrenData.length > 0) {
-      try {
-        console.log(
-          "Processing children data in updateUserProfile",
-          childrenData,
-        );
+      if (error) throw error;
 
-        // Process each child in the array
-        for (const childData of childrenData) {
-          console.log("Processing child:", childData);
+      // 2. Handle children data if provided and user is a parent
+      if (userType === "parent") {
+        // 2a. Delete children if any IDs are provided for deletion
+        if (deletedChildrenIds && deletedChildrenIds.length > 0) {
+          console.log("Deleting children with IDs:", deletedChildrenIds);
 
-          if (childData.id) {
-            // Update existing child
-            console.log("Updating existing child with ID:", childData.id);
-            const childDataToUpdate = convertObjectToSnakeCase(childData);
-            console.log("Child data to update:", childDataToUpdate);
+          const { error: deleteError } = await supabase
+            .from("children")
+            .delete()
+            .in("id", deletedChildrenIds)
+            .eq("parent_id", userId);
 
-            const { data: updateData, error: updateError } = await supabase
+          if (deleteError) {
+            console.error("Error deleting children:", deleteError);
+            throw deleteError;
+          }
+
+          console.log(
+            `Successfully deleted ${deletedChildrenIds.length} children`,
+          );
+        }
+
+        // 2b. Update and insert children in bulk if provided
+        if (childrenData && childrenData.length > 0) {
+          console.log("Processing children data in bulk", childrenData);
+
+          // Separate children into those to update and those to insert
+          const childrenToUpdate = childrenData.filter((child) => child.id);
+          const childrenToInsert = childrenData.filter((child) => !child.id);
+
+          // Process updates in bulk if there are any
+          if (childrenToUpdate.length > 0) {
+            console.log(
+              `Updating ${childrenToUpdate.length} existing children`,
+            );
+
+            // Use upsert with onConflict to update multiple children in one request
+            const childrenDataToUpdate = childrenToUpdate.map((child) =>
+              convertObjectToSnakeCase({
+                ...child,
+                parentId: userId,
+              }),
+            );
+
+            console.log("Children data to update:", childrenDataToUpdate);
+
+            const { error: updateError } = await supabase
               .from("children")
-              .update(childDataToUpdate)
-              .eq("id", childData.id)
-              .eq("parent_id", userId);
-
-            console.log("Update result:", {
-              data: updateData,
-              error: updateError,
-            });
+              .upsert(childrenDataToUpdate, { onConflict: "id" });
 
             if (updateError) {
-              console.error("Error updating child:", updateError);
+              console.error("Error updating children:", updateError);
               throw updateError;
             }
-          } else {
-            // Add new child
-            console.log("Adding new child for parent:", userId);
-            const childDataToInsert = convertObjectToSnakeCase({
-              ...childData,
-              parentId: userId,
-            });
-            console.log("Child data to insert:", childDataToInsert);
+          }
 
-            const { data: insertData, error: insertError } = await supabase
+          // Process inserts in bulk if there are any
+          if (childrenToInsert.length > 0) {
+            console.log(`Inserting ${childrenToInsert.length} new children`);
+
+            const childrenDataToInsert = childrenToInsert.map((child) =>
+              convertObjectToSnakeCase({
+                ...child,
+                parentId: userId,
+              }),
+            );
+
+            // Generate UUIDs for each new child
+            for (const child of childrenDataToInsert) {
+              // Add UUID for each new child
+              child.id = crypto.randomUUID();
+            }
+
+            console.log(
+              "Children data to insert with IDs:",
+              childrenDataToInsert,
+            );
+
+            const { error: insertError } = await supabase
               .from("children")
-              .insert(childDataToInsert);
-
-            console.log("Insert result:", {
-              data: insertData,
-              error: insertError,
-            });
+              .insert(childrenDataToInsert);
 
             if (insertError) {
-              console.error("Error adding child:", insertError);
+              console.error("Error inserting children:", insertError);
               throw insertError;
             }
           }
         }
-      } catch (childError) {
-        console.error("Error processing children data:", childError);
-        throw childError;
+      } else {
+        console.log("No children operations needed for organizer profile");
       }
-    } else {
-      console.log("No children data to process or user is not a parent", {
-        userType,
-        hasChildrenData: !!childrenData,
-        childrenCount: childrenData?.length || 0,
-      });
-    }
 
-    return convertObjectToCamelCase(data);
+      return convertObjectToCamelCase(data);
+    } catch (error) {
+      console.error("Error in updateUserProfile:", error);
+      throw error;
+    }
   },
 };
 
@@ -299,10 +373,14 @@ export const parentAPI = {
       };
     }
 
+    // Generate a UUID for the new child
+    const childId = crypto.randomUUID();
+
     const { data, error } = await supabase
       .from("children")
       .insert(
         convertObjectToSnakeCase({
+          id: childId,
           ...childData,
           parentId,
         }),

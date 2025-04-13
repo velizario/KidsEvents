@@ -75,6 +75,7 @@ const ProfileForm = ({
     useProfile();
   const { toast } = useToast();
   const [children, setChildren] = useState([]);
+  const [deletedChildrenIds, setDeletedChildrenIds] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Initialize form with user data if available
@@ -157,13 +158,47 @@ const ProfileForm = ({
 
   const removeChild = (index: number) => {
     if (children.length > 1) {
+      // Get the child being removed
+      const currentChildren = [...parentForm.getValues().children];
+      const childToRemove = currentChildren[index];
+
+      // If the child has an ID, add it to the deletedChildrenIds array
+      if (childToRemove && childToRemove.id) {
+        setDeletedChildrenIds((prev) => [...prev, childToRemove.id]);
+        console.log(`Adding child ID ${childToRemove.id} to deleted list`);
+      }
+
+      // Update the UI state
       const newChildren = [...children];
       newChildren.splice(index, 1);
       setChildren(newChildren);
 
-      const currentChildren = parentForm.getValues().children;
+      // Update the form state - create a new array to ensure React Hook Form detects the change
       currentChildren.splice(index, 1);
-      parentForm.setValue("children", currentChildren);
+
+      // Manually update each child field to ensure form state is correct
+      parentForm.setValue("children", []);
+
+      // Re-add each child with correct data
+      setTimeout(() => {
+        parentForm.setValue("children", [...currentChildren]);
+
+        // Force re-render of each field
+        currentChildren.forEach((child, idx) => {
+          parentForm.setValue(
+            `children.${idx}.firstName`,
+            child.firstName || "",
+          );
+          parentForm.setValue(`children.${idx}.lastName`, child.lastName || "");
+          parentForm.setValue(
+            `children.${idx}.dateOfBirth`,
+            child.dateOfBirth || "",
+          );
+          if (child.id) {
+            parentForm.setValue(`children.${idx}.id`, child.id);
+          }
+        });
+      }, 0);
     }
   };
 
@@ -197,7 +232,7 @@ const ProfileForm = ({
         childrenData,
       );
 
-      // Update parent profile with children data
+      // Update parent profile with children data and deleted children IDs
       await updateParentProfile(
         user.id,
         {
@@ -207,7 +242,11 @@ const ProfileForm = ({
           phone: data.phone,
         },
         childrenData,
+        deletedChildrenIds.length > 0 ? deletedChildrenIds : undefined,
       );
+
+      // Reset the deleted children IDs after successful update
+      setDeletedChildrenIds([]);
 
       // Force a refresh of the user data in the store
       await checkUser({ forceProfileRefresh: true });
