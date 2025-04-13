@@ -3,6 +3,7 @@ import {
   Link,
   useNavigate as useRouterNavigate,
 } from "react-router-dom";
+import { supabase } from "@/lib/supabase";
 import { useEffect, useState } from "react";
 import {
   ArrowLeft,
@@ -15,6 +16,7 @@ import {
   AlertCircle,
   CheckCircle2,
 } from "lucide-react";
+import { parentAPI } from "@/lib/api";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -82,9 +84,12 @@ const RegistrationForm = ({
     }
 
     if (eventId) {
-      fetchEvent(eventId);
+      fetchEvent(eventId).catch((error) => {
+        console.error("Error fetching event:", error);
+        setSubmitError(new Error("Failed to load event details"));
+      });
     }
-  }, [eventId, fetchEvent, mockEvent]);
+  }, [eventId, mockEvent]);
 
   // Update event when fetchedEvent changes
   useEffect(() => {
@@ -99,10 +104,163 @@ const RegistrationForm = ({
       return;
     }
 
-    console.log("Registration submitted:", data);
-    // In a real app, you would submit the registration to your backend
-    // and then redirect to a confirmation page
-    // navigate(`/registration/confirmation/${eventId}`);
+    try {
+      setIsSubmitting(true);
+      setSubmitError(null);
+      console.log("Registration submitted:", data);
+
+      // Get the first child from the form data
+      const childData = data.children[0];
+
+      // Generate a valid UUID for the child ID
+      // The parent ID will be fetched from the authenticated user
+      const childId = crypto.randomUUID();
+
+      // Register for the event
+      try {
+        // First create the child record with the form data
+        const childFormData = data.children[0];
+
+        // Create the child record using direct supabase call without select=*
+        try {
+          // Create a date of birth based on the age (approximate)
+          const currentDate = new Date();
+          const approximateBirthYear =
+            currentDate.getFullYear() - parseInt(childFormData.age);
+          const dateOfBirth = new Date(approximateBirthYear, 0, 1)
+            .toISOString()
+            .split("T")[0]; // January 1st of the birth year
+
+          // Get the current authenticated user
+          const { data: userData, error: userError } =
+            await supabase.auth.getUser();
+
+          if (userError) {
+            console.error("Error getting authenticated user:", userError);
+            throw new Error(
+              "Failed to get authenticated user: " + userError.message,
+            );
+          }
+
+          const actualParentId = userData.user?.id;
+
+          if (!actualParentId) {
+            throw new Error("User is not authenticated");
+          }
+
+          const { error: childError } = await supabase.from("children").insert({
+            id: childId,
+            parent_id: actualParentId,
+            first_name: childFormData.firstName,
+            last_name: childFormData.lastName,
+            age: parseInt(childFormData.age),
+            date_of_birth: dateOfBirth, // Add the date_of_birth field
+            allergies: childFormData.allergies || null,
+            special_needs: childFormData.specialNeeds || null,
+          });
+
+          if (childError) {
+            console.error("Error creating child record:", childError);
+            throw new Error(
+              "Failed to create child record: " + childError.message,
+            );
+          }
+        } catch (childError) {
+          console.error("Error creating child record:", childError);
+          throw new Error(
+            "Failed to create child record: " +
+              (childError instanceof Error
+                ? childError.message
+                : String(childError)),
+          );
+        }
+
+        // Get the current authenticated user
+        const { data: userData, error: userError } =
+          await supabase.auth.getUser();
+
+        if (userError) {
+          console.error("Error getting authenticated user:", userError);
+          throw new Error(
+            "Failed to get authenticated user: " + userError.message,
+          );
+        }
+
+        // Use the actual user ID instead of a random UUID
+        const actualParentId = userData.user?.id;
+
+        if (!actualParentId) {
+          throw new Error("User is not authenticated");
+        }
+
+        // Check if parent record already exists before creating it
+        const { data: existingParent, error: checkParentError } = await supabase
+          .from("parents")
+          .select("id")
+          .eq("id", actualParentId)
+          .maybeSingle();
+
+        if (checkParentError) {
+          console.error(
+            "Error checking for existing parent:",
+            checkParentError,
+          );
+        }
+
+        // Only create parent record if it doesn't already exist
+        if (!existingParent) {
+          const { error: parentError } = await supabase.from("parents").insert({
+            id: actualParentId,
+            email: userData.user.email || "demo@example.com",
+            first_name: "Demo",
+            last_name: "Parent",
+            phone: data.emergencyContact.phone || "555-123-4567",
+          });
+
+          if (parentError) {
+            console.error("Error creating parent record:", parentError);
+            throw new Error(
+              "Failed to create parent record: " + parentError.message,
+            );
+          }
+          console.log("Created new parent record");
+        } else {
+          console.log("Parent record already exists, skipping creation");
+        }
+
+        // Now register for the event - use the already fetched user data
+
+        const registration = await registrationAPI.registerForEvent(
+          eventId || mockEvent?.id || "",
+          {
+            childId,
+            parentId: actualParentId,
+            emergencyContact: data.emergencyContact,
+            paymentMethod: data.paymentMethod,
+          },
+        );
+        console.log("Registration successful:", registration);
+      } catch (registrationError) {
+        console.error("Registration API error:", registrationError);
+        throw registrationError;
+      }
+
+      setSubmitSuccess(true);
+
+      // Redirect to confirmation page after a short delay
+      setTimeout(() => {
+        navigate(`/events/${eventId || mockEvent?.id}/confirmation`);
+      }, 1000);
+    } catch (error) {
+      console.error("Registration error:", error);
+      setSubmitError(
+        error instanceof Error
+          ? error
+          : new Error("Failed to complete registration"),
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (

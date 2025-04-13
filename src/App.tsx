@@ -8,6 +8,7 @@ import EventManagement from "./components/events/EventManagement";
 import EventForm from "./components/events/EventForm";
 import RegistrationForm from "./components/registration/RegistrationForm";
 import RegistrationDetails from "./components/registration/RegistrationDetails";
+import RegistrationConfirmation from "./components/registration/RegistrationConfirmation";
 import LoginForm from "./components/auth/LoginForm";
 import RegisterForm from "./components/auth/RegisterForm";
 import Header from "./components/layout/Header";
@@ -40,6 +41,10 @@ function App() {
             <Route
               path="/events/:eventId/manage"
               element={<EventManagement />}
+            />
+            <Route
+              path="/events/:eventId/confirmation"
+              element={<RegistrationConfirmation />}
             />
             <Route
               path="/registrations/:registrationId"

@@ -96,22 +96,22 @@ const EventDetails = () => {
       <div className="relative h-[300px] md:h-[400px] w-full overflow-hidden">
         <img
           src={
-            eventData.imageUrl ||
+            eventData?.imageUrl ||
             "https://images.unsplash.com/photo-1551966775-a4ddc8df052b?w=600&q=80"
           }
-          alt={eventData.title}
+          alt={eventData?.title || "Event image"}
           className="absolute inset-0 w-full h-full object-cover"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent">
           <div className="container mx-auto px-4 h-full flex flex-col justify-end pb-6">
             <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
               <div>
-                <Badge className="mb-2">{eventData.category}</Badge>
+                <Badge className="mb-2">{eventData?.category || "Event"}</Badge>
                 <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">
-                  {eventData.title}
+                  {eventData?.title || "Event Details"}
                 </h1>
                 <p className="text-white/90 max-w-2xl">
-                  {eventData.description}
+                  {eventData?.description || "No description available"}
                 </p>
               </div>
               <div className="flex gap-2">
@@ -164,9 +164,9 @@ const EventDetails = () => {
                       className="prose max-w-none"
                       dangerouslySetInnerHTML={{
                         __html:
-                          eventData.longDescription ||
-                          eventData.description ||
-                          "",
+                          eventData?.longDescription ||
+                          eventData?.description ||
+                          "No description available",
                       }}
                     />
                   </CardContent>
@@ -180,22 +180,23 @@ const EventDetails = () => {
                       <div className="md:w-1/3">
                         <img
                           src={
-                            eventData.organizers.imageUrl ||
+                            eventData?.organizers?.imageUrl ||
                             "https://images.unsplash.com/photo-1551966775-a4ddc8df052b?w=600&q=80"
                           }
-                          alt={eventData.organizers.name}
+                          alt={eventData?.organizers?.name || "Organizer"}
                           className="w-full h-auto rounded-lg object-cover aspect-square"
                         />
                       </div>
                       <div className="md:w-2/3">
                         <h3 className="text-xl font-bold mb-2">
-                          {eventData.organizers.name}
+                          {eventData?.organizers?.name || "Organizer"}
                         </h3>
                         <p className="text-muted-foreground mb-4">
-                          {eventData.organizers.description}
+                          {eventData?.organizers?.description ||
+                            "No description available"}
                         </p>
                         <div className="space-y-2">
-                          {eventData.organizers.contactEmail && (
+                          {eventData?.organizers?.contactEmail && (
                             <p className="flex items-center gap-2">
                               <span className="font-medium">Email:</span>
                               <a
@@ -206,7 +207,7 @@ const EventDetails = () => {
                               </a>
                             </p>
                           )}
-                          {eventData.organizers?.contactPhone && (
+                          {eventData?.organizers?.contactPhone && (
                             <p className="flex items-center gap-2">
                               <span className="font-medium">Phone:</span>
                               <a
@@ -217,7 +218,7 @@ const EventDetails = () => {
                               </a>
                             </p>
                           )}
-                          {eventData.organizers?.website && (
+                          {eventData?.organizers?.website && (
                             <p className="flex items-center gap-2">
                               <span className="font-medium">Website:</span>
                               <a
@@ -249,14 +250,18 @@ const EventDetails = () => {
                       <Calendar className="h-5 w-5 text-muted-foreground" />
                       <div>
                         <p className="text-sm text-muted-foreground">Date</p>
-                        <p className="font-medium">{eventData.date}</p>
+                        <p className="font-medium">
+                          {eventData?.date || "TBD"}
+                        </p>
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
                       <Clock className="h-5 w-5 text-muted-foreground" />
                       <div>
                         <p className="text-sm text-muted-foreground">Time</p>
-                        <p className="font-medium">{eventData.time}</p>
+                        <p className="font-medium">
+                          {eventData?.time || "TBD"}
+                        </p>
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
@@ -265,7 +270,9 @@ const EventDetails = () => {
                         <p className="text-sm text-muted-foreground">
                           Location
                         </p>
-                        <p className="font-medium">{eventData.location}</p>
+                        <p className="font-medium">
+                          {eventData?.location || "TBD"}
+                        </p>
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
@@ -274,17 +281,21 @@ const EventDetails = () => {
                         <p className="text-sm text-muted-foreground">
                           Age Group
                         </p>
-                        <p className="font-medium">{eventData.ageGroup}</p>
+                        <p className="font-medium">
+                          {eventData?.ageGroup || "All ages"}
+                        </p>
                       </div>
                     </div>
                   </div>
 
                   <div className="border-t border-border pt-4">
                     <div className="flex justify-between items-center mb-2">
-                      <p className="text-lg font-bold">{eventData.price}</p>
+                      <p className="text-lg font-bold">
+                        {eventData?.price || "Free"}
+                      </p>
                       <p className="text-sm text-muted-foreground">
-                        {eventData.registrations} / {eventData.capacity}{" "}
-                        registered
+                        {eventData?.registrations || 0} /{" "}
+                        {eventData?.capacity || 0} registered
                       </p>
                     </div>
                     <div className="w-full bg-muted rounded-full h-2 mb-4">
@@ -292,7 +303,10 @@ const EventDetails = () => {
                         className="bg-primary h-2 rounded-full"
                         style={{
                           width: `${
-                            (eventData.registrations / eventData.capacity) * 100
+                            eventData
+                              ? (eventData.registrations / eventData.capacity) *
+                                100
+                              : 0
                           }%`,
                         }}
                       ></div>

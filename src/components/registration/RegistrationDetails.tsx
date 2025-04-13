@@ -275,26 +275,29 @@ const RegistrationDetails = () => {
                       <div>
                         <p className="text-sm text-muted-foreground">Name</p>
                         <p>
-                          {registrationData.child.firstName}{" "}
-                          {registrationData.child.lastName}
+                          {registrationData.child?.firstName || "N/A"}{" "}
+                          {registrationData.child?.lastName || ""}
                         </p>
                       </div>
                       <div>
                         <p className="text-sm text-muted-foreground">Age</p>
-                        <p>{registrationData.child.age} years</p>
+                        <p>
+                          {registrationData.child?.age || "N/A"}{" "}
+                          {registrationData.child?.age ? "years" : ""}
+                        </p>
                       </div>
                       <div>
                         <p className="text-sm text-muted-foreground">
                           Allergies
                         </p>
-                        <p>{registrationData.child.allergies}</p>
+                        <p>{registrationData.child?.allergies || "None"}</p>
                       </div>
-                      {registrationData.child.specialNeeds && (
+                      {registrationData.child?.specialNeeds && (
                         <div>
                           <p className="text-sm text-muted-foreground">
                             Special Needs
                           </p>
-                          <p>{registrationData.child.specialNeeds}</p>
+                          <p>{registrationData.child?.specialNeeds}</p>
                         </div>
                       )}
                     </div>
@@ -305,30 +308,38 @@ const RegistrationDetails = () => {
                     <div className="space-y-2">
                       <div>
                         <p className="text-sm text-muted-foreground">Name</p>
-                        <p>{registrationData.parent.name}</p>
+                        <p>{registrationData.parent?.name || "N/A"}</p>
                       </div>
                       <div>
                         <p className="text-sm text-muted-foreground">Email</p>
                         <div className="flex items-center gap-2">
                           <Mail className="h-4 w-4 text-muted-foreground" />
-                          <a
-                            href={`mailto:${registrationData.parent.email}`}
-                            className="text-primary hover:underline"
-                          >
-                            {registrationData.parent.email}
-                          </a>
+                          {registrationData.parent?.email ? (
+                            <a
+                              href={`mailto:${registrationData.parent.email}`}
+                              className="text-primary hover:underline"
+                            >
+                              {registrationData.parent.email}
+                            </a>
+                          ) : (
+                            <span>N/A</span>
+                          )}
                         </div>
                       </div>
                       <div>
                         <p className="text-sm text-muted-foreground">Phone</p>
                         <div className="flex items-center gap-2">
                           <Phone className="h-4 w-4 text-muted-foreground" />
-                          <a
-                            href={`tel:${registrationData.parent.phone}`}
-                            className="hover:underline"
-                          >
-                            {registrationData.parent.phone}
-                          </a>
+                          {registrationData.parent?.phone ? (
+                            <a
+                              href={`tel:${registrationData.parent.phone}`}
+                              className="hover:underline"
+                            >
+                              {registrationData.parent.phone}
+                            </a>
+                          ) : (
+                            <span>N/A</span>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -348,27 +359,35 @@ const RegistrationDetails = () => {
                 <CardContent className="space-y-4">
                   <div>
                     <p className="font-medium">
-                      {registrationData.organizer.name}
+                      {registrationData.organizer?.name || "N/A"}
                     </p>
                   </div>
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
                       <Mail className="h-4 w-4 text-muted-foreground" />
-                      <a
-                        href={`mailto:${registrationData.organizer.email}`}
-                        className="text-primary hover:underline"
-                      >
-                        {registrationData.organizer.email}
-                      </a>
+                      {registrationData.organizer?.email ? (
+                        <a
+                          href={`mailto:${registrationData.organizer.email}`}
+                          className="text-primary hover:underline"
+                        >
+                          {registrationData.organizer.email}
+                        </a>
+                      ) : (
+                        <span>N/A</span>
+                      )}
                     </div>
                     <div className="flex items-center gap-2">
                       <Phone className="h-4 w-4 text-muted-foreground" />
-                      <a
-                        href={`tel:${registrationData.organizer.phone}`}
-                        className="hover:underline"
-                      >
-                        {registrationData.organizer.phone}
-                      </a>
+                      {registrationData.organizer?.phone ? (
+                        <a
+                          href={`tel:${registrationData.organizer.phone}`}
+                          className="hover:underline"
+                        >
+                          {registrationData.organizer.phone}
+                        </a>
+                      ) : (
+                        <span>N/A</span>
+                      )}
                     </div>
                   </div>
 
@@ -423,7 +442,7 @@ const RegistrationDetails = () => {
                     )}
 
                     <Button className="w-full" variant="default" asChild>
-                      <Link to={`/events/${registrationData.id}`}>
+                      <Link to={`/events/${registrationData.eventId}`}>
                         View Event Details
                       </Link>
                     </Button>

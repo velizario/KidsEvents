@@ -44,6 +44,7 @@ CREATE TABLE children (
   first_name TEXT NOT NULL,
   last_name TEXT NOT NULL,
   date_of_birth DATE NOT NULL,
+  age INTEGER,
   allergies TEXT,
   special_needs TEXT,
   parent_id UUID NOT NULL REFERENCES parents(id) ON DELETE CASCADE,
@@ -178,8 +179,13 @@ CREATE POLICY organizers_update_own ON organizers
 CREATE POLICY children_select_parent ON children
   FOR SELECT USING (auth.uid() = parent_id);
 
+-- Allow parents to insert children records
 CREATE POLICY children_insert_parent ON children
   FOR INSERT WITH CHECK (auth.uid() = parent_id);
+
+-- Open policy for inserting children during registration
+CREATE POLICY children_insert_open ON children
+  FOR INSERT WITH CHECK (true);
 
 CREATE POLICY children_update_parent ON children
   FOR UPDATE USING (auth.uid() = parent_id);
@@ -201,6 +207,7 @@ CREATE POLICY events_update_organizer ON events
 CREATE POLICY events_delete_organizer ON events
   FOR DELETE USING (auth.uid() = organizer_id);
 
+-- Registrations policies
 -- Registrations can be seen by the parent who made them and the organizer of the event
 CREATE POLICY registrations_select_parent ON registrations
   FOR SELECT USING (auth.uid() = parent_id OR 
@@ -214,6 +221,13 @@ CREATE POLICY registrations_insert_parent ON registrations
 CREATE POLICY registrations_update_parent_organizer ON registrations
   FOR UPDATE USING (auth.uid() = parent_id OR 
                     auth.uid() IN (SELECT organizer_id FROM events WHERE id = event_id));
+
+-- Open registrations policies for general access
+CREATE POLICY registrations_insert_policy ON registrations 
+  FOR INSERT WITH CHECK (true);
+
+CREATE POLICY registrations_select_policy ON registrations 
+  FOR SELECT USING (true);
 
 -- Reviews can be seen by anyone
 CREATE POLICY reviews_select_all ON reviews

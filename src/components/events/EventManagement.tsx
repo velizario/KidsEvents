@@ -79,7 +79,7 @@ const EventManagement = () => {
   const [participantsData, setParticipantsData] = useState<Participant[]>([]);
   const [isLoadingParticipants, setIsLoadingParticipants] = useState(false);
   const [participantsError, setParticipantsError] = useState<string | null>(
-    null
+    null,
   );
   const [contactDialogOpen, setContactDialogOpen] = useState(false);
   const [contactSubject, setContactSubject] = useState("");
@@ -118,13 +118,13 @@ const EventManagement = () => {
         // Transform the data to match our Participant interface
         const formattedParticipants = data.map((registration) => ({
           id: registration.id,
-          childName: `${registration.children.firstName} ${registration.children.lastName}`,
-          childAge: registration.children.age || 0,
-          parentName: `${registration.parents.firstName} ${registration.parents.lastName}`,
-          parentEmail: registration.parents.email,
-          parentPhone: registration.parents.phone,
+          childName: `${registration.children?.firstName || "Unknown"} ${registration.children?.lastName || ""}`,
+          childAge: registration.children?.age || 0,
+          parentName: `${registration.parent?.firstName || registration.parent?.first_name || "Unknown"} ${registration.parent?.lastName || registration.parent?.last_name || ""}`,
+          parentEmail: registration.parent?.email || "",
+          parentPhone: registration.parent?.phone || "",
           registrationDate: new Date(
-            registration.registrationDate
+            registration.registrationDate,
           ).toLocaleDateString(),
           status: registration.status,
           paid: registration.paymentStatus === "paid",
@@ -167,13 +167,13 @@ const EventManagement = () => {
         // Transform the data to match our Participant interface
         const formattedParticipants = data.map((registration) => ({
           id: registration.id,
-          childName: `${registration.children.firstName} ${registration.children.lastName}`,
-          childAge: registration.children.age || 0,
-          parentName: `${registration.parents.firstName} ${registration.parents.lastName}`,
-          parentEmail: registration.parents.email,
-          parentPhone: registration.parents.phone,
+          childName: `${registration.children?.firstName || "Unknown"} ${registration.children?.lastName || ""}`,
+          childAge: registration.children?.age || 0,
+          parentName: `${registration.parent?.firstName || registration.parent?.first_name || "Unknown"} ${registration.parent?.lastName || registration.parent?.last_name || ""}`,
+          parentEmail: registration.parent?.email || "",
+          parentPhone: registration.parent?.phone || "",
           registrationDate: new Date(
-            registration.registrationDate
+            registration.registrationDate,
           ).toLocaleDateString(),
           status: registration.status,
           paid: registration.paymentStatus === "paid",
@@ -200,7 +200,7 @@ const EventManagement = () => {
       setIsLoadingParticipants(true);
       await registrationAPI.updateRegistrationStatus(
         registrationId,
-        "confirmed"
+        "confirmed",
       );
 
       // Refresh participants list after confirmation
@@ -210,13 +210,13 @@ const EventManagement = () => {
         // Transform the data to match our Participant interface
         const formattedParticipants = data.map((registration) => ({
           id: registration.id,
-          childName: `${registration.children.firstName} ${registration.children.lastName}`,
-          childAge: registration.children.age || 0,
-          parentName: `${registration.parents.firstName} ${registration.parents.lastName}`,
-          parentEmail: registration.parents.email,
-          parentPhone: registration.parents.phone,
+          childName: `${registration.children?.firstName || "Unknown"} ${registration.children?.lastName || ""}`,
+          childAge: registration.children?.age || 0,
+          parentName: `${registration.parent?.firstName || registration.parent?.first_name || "Unknown"} ${registration.parent?.lastName || registration.parent?.last_name || ""}`,
+          parentEmail: registration.parent?.email || "",
+          parentPhone: registration.parent?.phone || "",
           registrationDate: new Date(
-            registration.registrationDate
+            registration.registrationDate,
           ).toLocaleDateString(),
           status: registration.status,
           paid: registration.paymentStatus === "paid",
@@ -271,7 +271,7 @@ const EventManagement = () => {
       link.setAttribute("href", url);
       link.setAttribute(
         "download",
-        `${eventData?.title.replace(/\s+/g, "_")}_participants.csv`
+        `${eventData?.title.replace(/\s+/g, "_")}_participants.csv`,
       );
       link.style.visibility = "hidden";
       document.body.appendChild(link);
@@ -514,7 +514,7 @@ const EventManagement = () => {
                           <Check className="h-3 w-3 mr-1 text-green-500" />
                           {
                             participantsData.filter(
-                              (p) => p.status === "confirmed"
+                              (p) => p.status === "confirmed",
                             ).length
                           }{" "}
                           Confirmed
@@ -523,7 +523,7 @@ const EventManagement = () => {
                           <Clock className="h-3 w-3 mr-1 text-yellow-500" />
                           {
                             participantsData.filter(
-                              (p) => p.status === "pending"
+                              (p) => p.status === "pending",
                             ).length
                           }{" "}
                           Pending
@@ -532,7 +532,7 @@ const EventManagement = () => {
                           <X className="h-3 w-3 mr-1 text-red-500" />
                           {
                             participantsData.filter(
-                              (p) => p.status === "cancelled"
+                              (p) => p.status === "cancelled",
                             ).length
                           }{" "}
                           Cancelled
@@ -740,15 +740,15 @@ const EventManagement = () => {
                                     participant.status === "confirmed"
                                       ? "default"
                                       : participant.status === "pending"
-                                      ? "secondary"
-                                      : "destructive"
+                                        ? "secondary"
+                                        : "destructive"
                                   }
                                 >
                                   {participant.status === "confirmed"
                                     ? "Confirmed"
                                     : participant.status === "pending"
-                                    ? "Pending"
-                                    : "Cancelled"}
+                                      ? "Pending"
+                                      : "Cancelled"}
                                 </Badge>
                               </td>
                               <td className="py-3 px-4">
@@ -778,7 +778,7 @@ const EventManagement = () => {
                                       size="sm"
                                       onClick={() =>
                                         handleConfirmRegistration(
-                                          participant.id
+                                          participant.id,
                                         )
                                       }
                                     >
@@ -791,7 +791,7 @@ const EventManagement = () => {
                                     }
                                     onOpenChange={(open) =>
                                       setCancelRegistrationId(
-                                        open ? participant.id : null
+                                        open ? participant.id : null,
                                       )
                                     }
                                   >
@@ -822,7 +822,7 @@ const EventManagement = () => {
                                         <AlertDialogAction
                                           onClick={() =>
                                             handleCancelRegistration(
-                                              participant.id
+                                              participant.id,
                                             )
                                           }
                                           className="bg-destructive text-destructive-foreground hover:bg-destructive/90"

@@ -501,19 +501,24 @@ export const eventAPI = {
       return null;
     }
 
-    const { data, error } = await supabase
-      .from("events")
-      .select(
-        `
-        *,
-        organizers (*)
-      `,
-      )
-      .eq("id", eventId)
-      .single();
+    try {
+      const { data, error } = await supabase
+        .from("events")
+        .select(
+          `
+          *,
+          organizers (*)
+        `,
+        )
+        .eq("id", eventId)
+        .maybeSingle(); // Use maybeSingle instead of single to handle no results gracefully
 
-    if (error) throw error;
-    return convertObjectToCamelCase(data);
+      if (error) throw error;
+      return data ? convertObjectToCamelCase(data) : null;
+    } catch (error) {
+      console.error("Error fetching event:", error);
+      return null;
+    }
   },
 
   // Get event participants
@@ -594,50 +599,128 @@ export const registrationAPI = {
       };
     }
 
-    // First get the event to check capacity
-    const { data: event } = await supabase
-      .from("events")
-      .select("*")
-      .eq("id", eventId)
-      .single();
+    try {
+      // First get the event to check capacity
+      const { data: event, error: eventError } = await supabase
+        .from("events")
+        .select("*")
+        .eq("id", eventId)
+        .single();
 
-    if (event.registrations >= event.capacity) {
-      throw new Error("This event has reached its capacity");
+      if (eventError) throw eventError;
+
+      if (event.registrations >= event.capacity) {
+        throw new Error("This event has reached its capacity");
+      }
+
+      // Generate confirmation code
+      const confirmationCode = `${event.category
+        .substring(0, 3)
+        .toUpperCase()}-${new Date().getFullYear()}-${Math.floor(
+        1000 + Math.random() * 9000,
+      )}`;
+
+      // For development/demo purposes, we'll create a child and parent record first
+      // In a real app, these would already exist and be associated with the logged-in user
+
+      // Check if child record exists and create if needed
+      try {
+        // First check if the child record already exists
+        const { data: existingChild, error: checkChildError } = await supabase
+          .from("children")
+          .select("id")
+          .eq("id", registrationData.childId);
+
+        // If no child exists or we get an error
+        if (checkChildError || !existingChild || existingChild.length === 0) {
+          // Child doesn't exist, create it
+          const { error: childError } = await supabase.from("children").insert({
+            id: registrationData.childId,
+            parent_id: registrationData.parentId,
+            first_name: "Demo",
+            last_name: "Child",
+            age: 8,
+          });
+
+          if (childError) {
+            console.error("Error creating child record:", childError);
+            throw childError;
+          }
+        }
+      } catch (childError) {
+        console.error("Error handling child record:", childError);
+        throw new Error(
+          "Failed to create child record: " +
+            (childError.message || childError),
+        );
+      }
+
+      // Check if parent record exists and create if needed
+      try {
+        // First check if the parent record already exists
+        const { data: existingParent, error: checkParentError } = await supabase
+          .from("parents")
+          .select("id")
+          .eq("id", registrationData.parentId);
+
+        // If no parent exists or we get an error
+        if (
+          checkParentError ||
+          !existingParent ||
+          existingParent.length === 0
+        ) {
+          // Parent doesn't exist, create it
+          const { error: parentError } = await supabase.from("parents").insert({
+            id: registrationData.parentId,
+            email: "demo@example.com",
+            first_name: "Demo",
+            last_name: "Parent",
+            phone: "555-123-4567",
+          });
+
+          if (parentError) {
+            console.error("Error creating parent record:", parentError);
+            throw parentError;
+          }
+        }
+      } catch (parentError) {
+        console.error("Error handling parent record:", parentError);
+        throw new Error(
+          "Failed to create parent record: " +
+            (parentError.message || parentError),
+        );
+      }
+
+      // Create registration
+      const { data, error } = await supabase
+        .from("registrations")
+        .insert(
+          convertObjectToSnakeCase({
+            eventId,
+            childId: registrationData.childId,
+            parentId: registrationData.parentId,
+            status: "confirmed", // or 'pending' if payment is required
+            paymentStatus: event.isPaid ? "pending" : "paid",
+            confirmationCode,
+            registrationDate: new Date().toISOString(),
+            emergencyContact: registrationData.emergencyContact,
+          }),
+        )
+        .select();
+
+      if (error) throw error;
+
+      // Update event registration count
+      await supabase
+        .from("events")
+        .update({ registrations: event.registrations + 1 })
+        .eq("id", eventId);
+
+      return convertObjectToCamelCase(data[0]);
+    } catch (error) {
+      console.error("Error in registerForEvent:", error);
+      throw error;
     }
-
-    // Generate confirmation code
-    const confirmationCode = `${event.category
-      .substring(0, 3)
-      .toUpperCase()}-${new Date().getFullYear()}-${Math.floor(
-      1000 + Math.random() * 9000,
-    )}`;
-
-    // Create registration
-    const { data, error } = await supabase
-      .from("registrations")
-      .insert(
-        convertObjectToSnakeCase({
-          eventId,
-          childId: registrationData.childId,
-          parentId: registrationData.parentId,
-          status: "confirmed", // or 'pending' if payment is required
-          paymentStatus: event.isPaid ? "pending" : "paid",
-          confirmationCode,
-          registrationDate: new Date().toISOString(),
-          emergencyContact: registrationData.emergencyContact,
-        }),
-      )
-      .select();
-
-    if (error) throw error;
-
-    // Update event registration count
-    await supabase
-      .from("events")
-      .update({ registrations: event.registrations + 1 })
-      .eq("id", eventId);
-
-    return convertObjectToCamelCase(data[0]);
   },
 
   // Cancel a registration

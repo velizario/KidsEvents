@@ -66,7 +66,7 @@ export const useEvents = () => {
     } catch (err) {
       logger.error("Error fetching events:", err);
       setError(
-        err instanceof Error ? err : new Error("Failed to fetch events")
+        err instanceof Error ? err : new Error("Failed to fetch events"),
       );
       throw err;
     } finally {
@@ -96,7 +96,7 @@ export const useEvents = () => {
       setError(
         err instanceof Error
           ? err
-          : new Error("Failed to fetch organizer events")
+          : new Error("Failed to fetch organizer events"),
       );
       throw err;
     } finally {
@@ -117,13 +117,22 @@ export const useEvents = () => {
       const data = await eventAPI.getEvent(eventId);
       logger.debug("Received event data", { hasData: !!data, eventId });
 
+      if (!data) {
+        const notFoundError = new Error(`Event with ID ${eventId} not found`);
+        logger.error("Event not found:", notFoundError);
+        setError(notFoundError);
+        setEvent(null);
+        return null;
+      }
+
       setEvent(data);
       logger.info("Successfully fetched event", { eventId });
       return data;
     } catch (err) {
       logger.error("Error fetching event:", err);
       setError(err instanceof Error ? err : new Error("Failed to fetch event"));
-      throw err;
+      setEvent(null);
+      return null;
     } finally {
       logger.debug("Setting loading state to false");
       setLoading(false);
@@ -136,7 +145,7 @@ export const useEvents = () => {
     eventData: Omit<
       Event,
       "id" | "organizerId" | "registrations" | "createdAt" | "updatedAt"
-    >
+    >,
   ) => {
     logger.debug("Starting createEvent", {
       organizerId,
@@ -163,7 +172,7 @@ export const useEvents = () => {
     } catch (err) {
       logger.error("Error creating event:", err);
       setError(
-        err instanceof Error ? err : new Error("Failed to create event")
+        err instanceof Error ? err : new Error("Failed to create event"),
       );
       throw err;
     } finally {
@@ -199,7 +208,7 @@ export const useEvents = () => {
     } catch (err) {
       logger.error("Error updating event:", err);
       setError(
-        err instanceof Error ? err : new Error("Failed to update event")
+        err instanceof Error ? err : new Error("Failed to update event"),
       );
       throw err;
     } finally {
@@ -228,7 +237,7 @@ export const useEvents = () => {
     } catch (err) {
       logger.error("Error deleting event:", err);
       setError(
-        err instanceof Error ? err : new Error("Failed to delete event")
+        err instanceof Error ? err : new Error("Failed to delete event"),
       );
       throw err;
     } finally {
@@ -262,7 +271,7 @@ export const useEvents = () => {
       setError(
         err instanceof Error
           ? err
-          : new Error("Failed to fetch event participants")
+          : new Error("Failed to fetch event participants"),
       );
       throw err;
     } finally {
