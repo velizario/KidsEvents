@@ -6,10 +6,6 @@ export interface User {
   firstName: string;
   lastName: string;
   phone: string;
-  address?: string;
-  city?: string;
-  state?: string;
-  zipCode?: string;
   userType: "parent" | "organizer";
   createdAt: string;
   updatedAt: string;
@@ -37,8 +33,6 @@ export interface Child {
   lastName: string;
   dateOfBirth: string;
   age?: number;
-  allergies?: string;
-  specialNeeds?: string;
   parentId: string;
 }
 

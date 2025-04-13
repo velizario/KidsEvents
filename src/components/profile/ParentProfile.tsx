@@ -1,14 +1,6 @@
 import { useState, useEffect } from "react";
-import { Link, useParams } from "react-router-dom";
-import {
-  Mail,
-  Phone,
-  MapPin,
-  User,
-  Calendar,
-  ArrowLeft,
-  Loader2,
-} from "lucide-react";
+import { Link, useParams, useNavigate } from "react-router-dom";
+import { Mail, Phone, User, Calendar, ArrowLeft, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -21,35 +13,43 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { authAPI } from "@/lib/api";
 import { Parent } from "@/types/models";
+import { useAuthStore } from "@/store/authStore";
+import { useToast } from "@/components/ui/use-toast";
 
 const ParentProfile = () => {
   const { parentId } = useParams<{ parentId: string }>();
+  const { user, isAuthenticated } = useAuthStore();
+  const navigate = useNavigate();
+  const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("about");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [parent, setParent] = useState<Parent | null>(null);
+  const [isCurrentUser, setIsCurrentUser] = useState(false);
 
   useEffect(() => {
-    const fetchParentData = async () => {
-      if (!parentId) return;
-
-      setLoading(true);
-      setError(null);
-
+    const fetchParentProfile = async () => {
       try {
-        // Fetch parent profile
-        const parentData = await authAPI.getUserProfile(parentId, "parent");
-        setParent(parentData as Parent);
+        if (!parentId) return;
+
+        const response = await authAPI.getParentById(parentId);
+        setParent(response);
+
+        // Check if this is the current user's profile
+        if (isAuthenticated && user && user.id === parentId) {
+          setIsCurrentUser(true);
+        }
       } catch (err) {
-        console.error("Error fetching parent data:", err);
-        setError("Failed to load parent data. Please try again later.");
+        setError(
+          err instanceof Error ? err.message : "Failed to load parent profile",
+        );
       } finally {
         setLoading(false);
       }
     };
 
-    fetchParentData();
-  }, [parentId]);
+    fetchParentProfile();
+  }, [parentId, user, isAuthenticated]);
 
   if (loading) {
     return (
@@ -168,26 +168,6 @@ const ParentProfile = () => {
                                 <p>{child.age || "Not specified"}</p>
                               </div>
                             </div>
-                            {(child.allergies || child.specialNeeds) && (
-                              <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-                                {child.allergies && (
-                                  <div>
-                                    <p className="text-sm text-muted-foreground">
-                                      Allergies
-                                    </p>
-                                    <p>{child.allergies}</p>
-                                  </div>
-                                )}
-                                {child.specialNeeds && (
-                                  <div>
-                                    <p className="text-sm text-muted-foreground">
-                                      Special Needs
-                                    </p>
-                                    <p>{child.specialNeeds}</p>
-                                  </div>
-                                )}
-                              </div>
-                            )}
                           </div>
                         ))}
                       </div>
@@ -196,8 +176,24 @@ const ParentProfile = () => {
                         <p className="text-muted-foreground">
                           No children added yet
                         </p>
+                        {isCurrentUser && (
+                          <Button className="mt-4" variant="outline" asChild>
+                            <Link to="/parent/add-child">Add Child</Link>
+                          </Button>
+                        )}
                       </div>
                     )}
+                    {parent.children &&
+                      parent.children.length > 0 &&
+                      isCurrentUser && (
+                        <div className="mt-6 flex justify-center">
+                          <Button variant="outline" asChild>
+                            <Link to="/parent/add-child">
+                              Add Another Child
+                            </Link>
+                          </Button>
+                        </div>
+                      )}
                   </CardContent>
                 </Card>
               </TabsContent>
@@ -231,24 +227,15 @@ const ParentProfile = () => {
                         </a>
                       </div>
                     </div>
-                    <div className="flex items-center gap-3">
-                      <MapPin className="h-5 w-5 text-muted-foreground" />
-                      <div>
-                        <p className="text-sm text-muted-foreground">Address</p>
-                        <p className="font-medium">
-                          {parent.address
-                            ? `${parent.address}${parent.city ? `, ${parent.city}` : ""}${parent.state ? `, ${parent.state}` : ""}${parent.zipCode ? ` ${parent.zipCode}` : ""}`
-                            : "Address not provided"}
-                        </p>
-                      </div>
-                    </div>
                   </div>
 
-                  <div className="border-t border-border pt-4">
-                    <Button className="w-full" variant="outline" asChild>
-                      <Link to="/parent/profile">Edit Profile</Link>
-                    </Button>
-                  </div>
+                  {isCurrentUser && (
+                    <div className="border-t border-border pt-4">
+                      <Button className="w-full" variant="outline" asChild>
+                        <Link to="/parent/profile">Edit Profile</Link>
+                      </Button>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </div>

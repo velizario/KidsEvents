@@ -75,10 +75,6 @@ export const authAPI = {
           firstName: userData.firstName,
           lastName: userData.lastName,
           phone: userData.phone,
-          address: userData.address,
-          city: userData.city,
-          state: userData.state,
-          zipCode: userData.zipCode,
         }),
       );
     } else {
@@ -90,10 +86,6 @@ export const authAPI = {
           contactName: (userData as Partial<Organizer>).contactName,
           description: (userData as Partial<Organizer>).description,
           phone: userData.phone,
-          address: userData.address,
-          city: userData.city,
-          state: userData.state,
-          zipCode: userData.zipCode,
           website: (userData as Partial<Organizer>).website,
         }),
       );
@@ -290,7 +282,6 @@ export const parentAPI = {
           lastName: "Johnson",
           dateOfBirth: "2015-05-12",
           age: 8,
-          allergies: "None",
           parentId,
         },
         {
@@ -299,7 +290,6 @@ export const parentAPI = {
           lastName: "Johnson",
           dateOfBirth: "2017-08-23",
           age: 6,
-          allergies: "Peanuts",
           parentId,
         },
       ];
@@ -324,7 +314,6 @@ export const parentAPI = {
         lastName: "Johnson",
         dateOfBirth: "2015-05-12",
         age: 8,
-        allergies: "None",
         parentId: "mock-parent-id",
       };
     }

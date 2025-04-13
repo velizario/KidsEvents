@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { User, Mail, Phone, MapPin, Plus, Trash2 } from "lucide-react";
+import { User, Mail, Phone, Plus, Trash2, Loader2 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -18,23 +19,20 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useToast } from "@/components/ui/use-toast";
+import { useAuthStore } from "@/store/authStore";
+import { useProfile } from "@/hooks/useProfile";
 
 const parentProfileSchema = z.object({
   firstName: z.string().min(2, { message: "First name is required" }),
   lastName: z.string().min(2, { message: "Last name is required" }),
   email: z.string().email({ message: "Please enter a valid email address" }),
   phone: z.string().min(10, { message: "Please enter a valid phone number" }),
-  address: z.string().min(5, { message: "Address is required" }),
-  city: z.string().min(2, { message: "City is required" }),
-  state: z.string().min(2, { message: "State is required" }),
-  zipCode: z.string().min(5, { message: "Zip code is required" }),
   children: z.array(
     z.object({
       firstName: z.string().min(2, { message: "First name is required" }),
       lastName: z.string().min(2, { message: "Last name is required" }),
       dateOfBirth: z.string().min(1, { message: "Date of birth is required" }),
-      allergies: z.string().optional(),
-      specialNeeds: z.string().optional(),
     }),
   ),
 });
@@ -48,10 +46,6 @@ const organizerProfileSchema = z.object({
   contactName: z.string().min(2, { message: "Contact name is required" }),
   email: z.string().email({ message: "Please enter a valid email address" }),
   phone: z.string().min(10, { message: "Please enter a valid phone number" }),
-  address: z.string().min(5, { message: "Address is required" }),
-  city: z.string().min(2, { message: "City is required" }),
-  state: z.string().min(2, { message: "State is required" }),
-  zipCode: z.string().min(5, { message: "Zip code is required" }),
   description: z.string().min(10, { message: "Description is required" }),
   website: z
     .string()
@@ -74,35 +68,29 @@ interface ProfileFormProps {
 const ProfileForm = ({
   userType = "parent",
   initialData,
-  onSubmit = () => {},
+  onSubmit,
 }: ProfileFormProps) => {
+  const { user, isAuthenticated } = useAuthStore();
+  const { updateParentProfile, updateOrganizerProfile, loading, error } =
+    useProfile();
+  const { toast } = useToast();
+  const navigate = useNavigate();
   const [children, setChildren] = useState([{ id: 1 }, { id: 2 }]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Initialize form with user data if available
   const parentForm = useForm<ParentProfileFormValues>({
     resolver: zodResolver(parentProfileSchema),
     defaultValues: {
-      firstName: "Sarah",
-      lastName: "Johnson",
-      email: "sarah.johnson@example.com",
-      phone: "(555) 123-4567",
-      address: "123 Main St",
-      city: "Anytown",
-      state: "CA",
-      zipCode: "12345",
-      children: [
+      firstName: user?.firstName || "",
+      lastName: user?.lastName || "",
+      email: user?.email || "",
+      phone: user?.phone || "",
+      children: (user as any)?.children || [
         {
-          firstName: "Emma",
-          lastName: "Johnson",
-          dateOfBirth: "2015-05-12",
-          allergies: "None",
-          specialNeeds: "",
-        },
-        {
-          firstName: "Noah",
-          lastName: "Johnson",
-          dateOfBirth: "2017-08-23",
-          allergies: "Peanuts",
-          specialNeeds: "",
+          firstName: "",
+          lastName: "",
+          dateOfBirth: "",
         },
       ],
       ...(initialData as ParentProfileFormValues),
@@ -112,20 +100,48 @@ const ProfileForm = ({
   const organizerForm = useForm<OrganizerProfileFormValues>({
     resolver: zodResolver(organizerProfileSchema),
     defaultValues: {
-      organizationName: "Community Arts Center",
-      contactName: "John Smith",
-      email: "info@communityartscenter.org",
-      phone: "(555) 987-6543",
-      address: "456 Oak Ave",
-      city: "Anytown",
-      state: "CA",
-      zipCode: "12345",
-      description:
-        "A non-profit organization dedicated to providing arts education and experiences for children and adults in our community.",
-      website: "https://www.communityartscenter.org",
+      organizationName: (user as any)?.organizationName || "",
+      contactName: (user as any)?.contactName || "",
+      email: user?.email || "",
+      phone: user?.phone || "",
+      description: (user as any)?.description || "",
+      website: (user as any)?.website || "",
       ...(initialData as OrganizerProfileFormValues),
     },
   });
+
+  // Update form when user data changes
+  useEffect(() => {
+    if (user) {
+      if (userType === "parent") {
+        parentForm.reset({
+          firstName: user.firstName || "",
+          lastName: user.lastName || "",
+          email: user.email || "",
+          phone: user.phone || "",
+          children: (user as any).children || [],
+        });
+
+        // Update children state for UI
+        if ((user as any).children && (user as any).children.length > 0) {
+          setChildren(
+            (user as any).children.map((child: any, index: number) => ({
+              id: child.id || index + 1,
+            })),
+          );
+        }
+      } else {
+        organizerForm.reset({
+          organizationName: (user as any).organizationName || "",
+          contactName: (user as any).contactName || "",
+          email: user.email || "",
+          phone: user.phone || "",
+          description: (user as any).description || "",
+          website: (user as any).website || "",
+        });
+      }
+    }
+  }, [user, userType]);
 
   const addChild = () => {
     setChildren([...children, { id: children.length + 1 }]);
@@ -154,14 +170,89 @@ const ProfileForm = ({
     }
   };
 
-  const handleParentSubmit = (data: ParentProfileFormValues) => {
-    console.log("Parent profile submitted:", data);
-    onSubmit(data);
+  const handleParentSubmit = async (data: ParentProfileFormValues) => {
+    if (!user || !user.id) {
+      toast({
+        title: "Error",
+        description: "You must be logged in to update your profile",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      await updateParentProfile(user.id, {
+        firstName: data.firstName,
+        lastName: data.lastName,
+        email: data.email,
+        phone: data.phone,
+        // Children will be handled separately
+      });
+
+      // Handle children updates here if needed
+
+      toast({
+        title: "Success",
+        description: "Your profile has been updated",
+      });
+
+      if (onSubmit) onSubmit(data);
+
+      // Redirect to dashboard
+      navigate("/parent/dashboard");
+    } catch (err) {
+      console.error("Error updating profile:", err);
+      toast({
+        title: "Error",
+        description: "Failed to update profile. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const handleOrganizerSubmit = (data: OrganizerProfileFormValues) => {
-    console.log("Organizer profile submitted:", data);
-    onSubmit(data);
+  const handleOrganizerSubmit = async (data: OrganizerProfileFormValues) => {
+    if (!user || !user.id) {
+      toast({
+        title: "Error",
+        description: "You must be logged in to update your profile",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      await updateOrganizerProfile(user.id, {
+        organizationName: data.organizationName,
+        contactName: data.contactName,
+        email: data.email,
+        phone: data.phone,
+        description: data.description,
+        website: data.website,
+      });
+
+      toast({
+        title: "Success",
+        description: "Your profile has been updated",
+      });
+
+      if (onSubmit) onSubmit(data);
+
+      // Redirect to dashboard
+      navigate("/organizer/dashboard");
+    } catch (err) {
+      console.error("Error updating profile:", err);
+      toast({
+        title: "Error",
+        description: "Failed to update profile. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -267,76 +358,6 @@ const ProfileForm = ({
                       </div>
                     </div>
                   </div>
-
-                  <div>
-                    <h3 className="text-lg font-medium mb-4">Address</h3>
-                    <div className="grid grid-cols-1 gap-4">
-                      <FormField
-                        control={parentForm.control}
-                        name="address"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Street Address</FormLabel>
-                            <FormControl>
-                              <div className="relative">
-                                <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                                <Input
-                                  placeholder="123 Main St"
-                                  className="pl-10"
-                                  {...field}
-                                />
-                              </div>
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <FormField
-                          control={parentForm.control}
-                          name="city"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>City</FormLabel>
-                              <FormControl>
-                                <Input placeholder="Anytown" {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-
-                        <FormField
-                          control={parentForm.control}
-                          name="state"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>State</FormLabel>
-                              <FormControl>
-                                <Input placeholder="CA" {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-
-                        <FormField
-                          control={parentForm.control}
-                          name="zipCode"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Zip Code</FormLabel>
-                              <FormControl>
-                                <Input placeholder="12345" {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </div>
-                    </div>
-                  </div>
                 </CardContent>
               </Card>
 
@@ -420,51 +441,22 @@ const ProfileForm = ({
                           )}
                         />
                       </div>
-
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                        <FormField
-                          control={parentForm.control}
-                          name={`children.${index}.allergies`}
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Allergies</FormLabel>
-                              <FormControl>
-                                <Textarea
-                                  placeholder="List any allergies or write 'None'"
-                                  className="resize-none"
-                                  {...field}
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-
-                        <FormField
-                          control={parentForm.control}
-                          name={`children.${index}.specialNeeds`}
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Special Needs</FormLabel>
-                              <FormControl>
-                                <Textarea
-                                  placeholder="Any special needs or accommodations"
-                                  className="resize-none"
-                                  {...field}
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </div>
                     </div>
                   ))}
                 </CardContent>
               </Card>
 
               <div className="flex justify-end">
-                <Button type="submit">Save Changes</Button>
+                <Button type="submit" disabled={isSubmitting}>
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Saving...
+                    </>
+                  ) : (
+                    "Save Changes"
+                  )}
+                </Button>
               </div>
             </form>
           </Form>
@@ -611,81 +603,20 @@ const ProfileForm = ({
                       </FormItem>
                     )}
                   />
-
-                  <div>
-                    <h3 className="text-lg font-medium mb-4">Address</h3>
-                    <div className="grid grid-cols-1 gap-4">
-                      <FormField
-                        control={organizerForm.control}
-                        name="address"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Street Address</FormLabel>
-                            <FormControl>
-                              <div className="relative">
-                                <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                                <Input
-                                  placeholder="456 Oak Ave"
-                                  className="pl-10"
-                                  {...field}
-                                />
-                              </div>
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <FormField
-                          control={organizerForm.control}
-                          name="city"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>City</FormLabel>
-                              <FormControl>
-                                <Input placeholder="Anytown" {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-
-                        <FormField
-                          control={organizerForm.control}
-                          name="state"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>State</FormLabel>
-                              <FormControl>
-                                <Input placeholder="CA" {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-
-                        <FormField
-                          control={organizerForm.control}
-                          name="zipCode"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Zip Code</FormLabel>
-                              <FormControl>
-                                <Input placeholder="12345" {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </div>
-                    </div>
-                  </div>
                 </CardContent>
               </Card>
 
               <div className="flex justify-end">
-                <Button type="submit">Save Changes</Button>
+                <Button type="submit" disabled={isSubmitting}>
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Saving...
+                    </>
+                  ) : (
+                    "Save Changes"
+                  )}
+                </Button>
               </div>
             </form>
           </Form>

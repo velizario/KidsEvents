@@ -87,7 +87,15 @@ const Header = () => {
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
-                    <Link to="/profile">Profile</Link>
+                    <Link
+                      to={
+                        userType === "parent"
+                          ? "/parent/profile"
+                          : "/organizer/profile"
+                      }
+                    >
+                      Profile
+                    </Link>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={handleSignOut}>
