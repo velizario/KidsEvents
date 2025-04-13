@@ -3,7 +3,6 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { User, Mail, Phone, Plus, Trash2, Loader2 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -33,7 +32,7 @@ const parentProfileSchema = z.object({
       firstName: z.string().min(2, { message: "First name is required" }),
       lastName: z.string().min(2, { message: "Last name is required" }),
       dateOfBirth: z.string().min(1, { message: "Date of birth is required" }),
-    }),
+    })
   ),
 });
 
@@ -61,7 +60,7 @@ interface ProfileFormProps {
   userType: "parent" | "organizer";
   initialData?: ParentProfileFormValues | OrganizerProfileFormValues;
   onSubmit?: (
-    data: ParentProfileFormValues | OrganizerProfileFormValues,
+    data: ParentProfileFormValues | OrganizerProfileFormValues
   ) => void;
 }
 
@@ -75,7 +74,6 @@ const ProfileForm = ({
   const { updateParentProfile, updateOrganizerProfile, loading, error } =
     useProfile();
   const { toast } = useToast();
-  const navigate = useNavigate();
   const [children, setChildren] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -128,7 +126,7 @@ const ProfileForm = ({
           setChildren(
             (user as any).children.map((child: any, index: number) => ({
               id: child.id || index + 1,
-            })),
+            }))
           );
         }
       } else {
@@ -197,12 +195,11 @@ const ProfileForm = ({
       });
 
       // Force a refresh of the user data in the store
-      await checkUser();
+      await checkUser({ forceProfileRefresh: true });
 
       if (onSubmit) onSubmit(data);
 
       // Redirect to dashboard
-      navigate("/parent/dashboard");
     } catch (err) {
       console.error("Error updating profile:", err);
       toast({
@@ -242,12 +239,11 @@ const ProfileForm = ({
       });
 
       // Force a refresh of the user data in the store
-      await checkUser();
+      await checkUser({ forceProfileRefresh: true });
 
       if (onSubmit) onSubmit(data);
 
       // Redirect to dashboard
-      navigate("/organizer/dashboard");
     } catch (err) {
       console.error("Error updating profile:", err);
       toast({

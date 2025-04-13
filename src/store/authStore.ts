@@ -54,10 +54,10 @@ interface AuthState {
   signUp: (
     email: string,
     password: string,
-    userData: Partial<User>,
+    userData: Partial<User>
   ) => Promise<void>;
   signOut: () => Promise<void>;
-  checkUser: () => Promise<void>;
+  checkUser: (options?: { forceProfileRefresh?: boolean }) => Promise<void>;
 }
 
 // Cache for user profiles to prevent duplicate API calls
@@ -71,7 +71,7 @@ export const useAuthStore = create(
       isAuthenticated: false,
       userType: null,
 
-      checkUser: async () => {
+      checkUser: async (options?: { forceProfileRefresh?: boolean }) => {
         logger.debug("Starting checkUser process");
         // Clear profile cache to ensure fresh data is fetched
         profileCache.clear();
@@ -103,6 +103,7 @@ export const useAuthStore = create(
             });
             if (user) {
               if (
+                !options?.forceProfileRefresh &&
                 currentState.user &&
                 currentState.user.id === user.id &&
                 currentState.isAuthenticated
@@ -132,7 +133,7 @@ export const useAuthStore = create(
               logger.info(
                 `Workspaceing profile for user ${user.id} from ${
                   type === "parent" ? "parents" : "organizers"
-                }`,
+                }`
               );
               const { data: profile, error: profileError } = await supabase
                 .from(type === "parent" ? "parents" : "organizers")
@@ -192,18 +193,18 @@ export const useAuthStore = create(
                         last_name: userData.lastName || "",
                         phone: userData.phone || "",
                       },
-                      { onConflict: "id" },
+                      { onConflict: "id" }
                     );
 
                   if (parentError) {
                     logger.error(
                       "Error creating parent profile after auth:",
-                      parentError,
+                      parentError
                     );
                   } else {
                     logger.info(
                       "Successfully created parent profile after auth",
-                      { userId: user.id },
+                      { userId: user.id }
                     );
                   }
                 } else {
@@ -219,18 +220,18 @@ export const useAuthStore = create(
                         phone: userData.phone || "",
                         website: userData.website || "",
                       },
-                      { onConflict: "id" },
+                      { onConflict: "id" }
                     );
 
                   if (organizerError) {
                     logger.error(
                       "Error creating organizer profile after auth:",
-                      organizerError,
+                      organizerError
                     );
                   } else {
                     logger.info(
                       "Successfully created organizer profile after auth",
-                      { userId: user.id },
+                      { userId: user.id }
                     );
                   }
                 }
@@ -274,7 +275,7 @@ export const useAuthStore = create(
             if (currentState.isAuthenticated || currentState.user) {
               //
               logger.info(
-                "No active session found, ensuring user is logged out in state.",
+                "No active session found, ensuring user is logged out in state."
               ); //
               profileCache.clear(); //
               set({
@@ -336,7 +337,7 @@ export const useAuthStore = create(
       signUp: async (
         email: string,
         password: string,
-        userData: Partial<User>,
+        userData: Partial<User>
       ) => {
         logger.info(`Attempting to sign up new user`, {
           email: email.substring(0, 3) + "***",
@@ -388,7 +389,7 @@ export const useAuthStore = create(
                   last_name: userData.lastName,
                   phone: userData.phone || "",
                 },
-                { onConflict: "id" },
+                { onConflict: "id" }
               );
 
             if (parentError) {
@@ -411,7 +412,7 @@ export const useAuthStore = create(
                   phone: userData.phone || "",
                   website: (userData as any).website || "",
                 },
-                { onConflict: "id" },
+                { onConflict: "id" }
               );
 
             if (organizerError) {
@@ -467,8 +468,8 @@ export const useAuthStore = create(
         isAuthenticated: state.isAuthenticated,
         userType: state.userType,
       }),
-    },
-  ),
+    }
+  )
 );
 
 // Set up auth state change listener
@@ -496,7 +497,7 @@ if (typeof window !== "undefined") {
             event === "USER_UPDATED"
           ) {
             logger.info(
-              `Auth state change requires checkUser (${event}, user: ${newUserId}, previously authenticated: ${authStore.isAuthenticated})`,
+              `Auth state change requires checkUser (${event}, user: ${newUserId}, previously authenticated: ${authStore.isAuthenticated})`
             );
             if (!window._authCheckInProgress) {
               window._authCheckInProgress = true;
@@ -508,12 +509,12 @@ if (typeof window !== "undefined") {
               }, 0);
             } else {
               logger.debug(
-                "checkUser call already in progress, skipping duplicate trigger.",
+                "checkUser call already in progress, skipping duplicate trigger."
               );
             }
           } else {
             logger.debug(
-              `Auth event (${event}) for same authenticated user (${newUserId}). Skipping full checkUser.`,
+              `Auth event (${event}) for same authenticated user (${newUserId}). Skipping full checkUser.`
             );
             if (authStore.isLoading) {
               useAuthStore.setState({ isLoading: false });
@@ -537,7 +538,7 @@ if (typeof window !== "undefined") {
           window.location.href = "/login";
         }
       }
-    },
+    }
   );
 
   if (!window._authCheckInProgress) {
