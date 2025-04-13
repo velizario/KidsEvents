@@ -544,11 +544,22 @@ export const eventAPI = {
     if (data && data.length > 0) {
       const registrationsWithParents = await Promise.all(
         data.map(async (registration) => {
-          const { data: parentData, error: parentError } = await supabase
-            .from("parents")
-            .select("id, first_name, last_name, email, phone")
-            .eq("id", registration.parent_id)
-            .single();
+          let parentData = null;
+          let parentError = null;
+
+          try {
+            const { data: fetchedParent, error } = await supabase
+              .from("parents")
+              .select("id, first_name, last_name, email, phone")
+              .eq("id", registration.parent_id)
+              .maybeSingle();
+
+            parentData = fetchedParent;
+            parentError = error;
+          } catch (err) {
+            console.error("Error fetching parent data:", err);
+            parentError = err;
+          }
 
           if (parentError) {
             console.error("Error fetching parent:", parentError);
@@ -796,11 +807,22 @@ export const registrationAPI = {
 
     // Fetch parent information separately
     if (data) {
-      const { data: parentData, error: parentError } = await supabase
-        .from("parents")
-        .select("id, first_name, last_name, email, phone")
-        .eq("id", data.parent_id)
-        .single();
+      let parentData = null;
+      let parentError = null;
+
+      try {
+        const { data: fetchedParent, error } = await supabase
+          .from("parents")
+          .select("id, first_name, last_name, email, phone")
+          .eq("id", data.parent_id)
+          .maybeSingle();
+
+        parentData = fetchedParent;
+        parentError = error;
+      } catch (err) {
+        console.error("Error fetching parent data:", err);
+        parentError = err;
+      }
 
       if (parentError) {
         console.error("Error fetching parent:", parentError);

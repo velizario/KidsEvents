@@ -48,11 +48,14 @@ interface AuthState {
   signUp: (
     email: string,
     password: string,
-    userData: Partial<User>
+    userData: Partial<User>,
   ) => Promise<void>;
   signOut: () => Promise<void>;
   checkUser: () => Promise<void>;
 }
+
+// Cache for user profiles to prevent duplicate API calls
+const profileCache = new Map();
 
 export const useAuthStore = create<AuthState>(
   persist(
@@ -72,6 +75,9 @@ export const useAuthStore = create<AuthState>(
             return;
           }
 
+          // Get current state
+          const currentState = get();
+
           logger.debug("Fetching current session");
           const {
             data: { session },
@@ -87,12 +93,40 @@ export const useAuthStore = create<AuthState>(
               userId: user?.id,
             });
             if (user) {
+              // Check if we already have this user's profile in state
+              if (
+                currentState.user &&
+                currentState.user.id === user.id &&
+                currentState.isAuthenticated
+              ) {
+                logger.debug("User profile already in state, skipping fetch", {
+                  userId: user.id,
+                });
+                set({ isLoading: false });
+                return;
+              }
+
+              // Check if we have this user's profile in cache
+              if (profileCache.has(user.id)) {
+                logger.debug("User profile found in cache, using cached data", {
+                  userId: user.id,
+                });
+                const cachedProfile = profileCache.get(user.id);
+                set({
+                  user: cachedProfile,
+                  userType: cachedProfile.userType,
+                  isAuthenticated: true,
+                  isLoading: false,
+                });
+                return;
+              }
+
               // Get user profile data from the appropriate table
               const type = user.user_metadata?.userType || "parent";
               logger.info(
                 `Fetching profile for user ${user.id} from ${
                   type === "parent" ? "parents" : "organizers"
-                }`
+                }`,
               );
               const { data: profile, error: profileError } = await supabase
                 .from(type === "parent" ? "parents" : "organizers")
@@ -108,8 +142,13 @@ export const useAuthStore = create<AuthState>(
                 logger.info(`Profile found for user ${user.id}`, {
                   userType: type,
                 });
+                const userData = { ...profile, id: user.id, userType: type };
+
+                // Store in cache
+                profileCache.set(user.id, userData);
+
                 set({
-                  user: { ...profile, id: user.id, userType: type },
+                  user: userData,
                   userType: type,
                   isAuthenticated: true,
                   isLoading: false,
@@ -146,18 +185,18 @@ export const useAuthStore = create<AuthState>(
                         last_name: userData.lastName || "",
                         phone: userData.phone || "",
                       },
-                      { onConflict: "id" }
+                      { onConflict: "id" },
                     );
 
                   if (parentError) {
                     logger.error(
                       "Error creating parent profile after auth:",
-                      parentError
+                      parentError,
                     );
                   } else {
                     logger.info(
                       "Successfully created parent profile after auth",
-                      { userId: user.id }
+                      { userId: user.id },
                     );
                   }
                 } else {
@@ -173,18 +212,18 @@ export const useAuthStore = create<AuthState>(
                         phone: userData.phone || "",
                         website: userData.website || "",
                       },
-                      { onConflict: "id" }
+                      { onConflict: "id" },
                     );
 
                   if (organizerError) {
                     logger.error(
                       "Error creating organizer profile after auth:",
-                      organizerError
+                      organizerError,
                     );
                   } else {
                     logger.info(
                       "Successfully created organizer profile after auth",
-                      { userId: user.id }
+                      { userId: user.id },
                     );
                   }
                 }
@@ -201,8 +240,17 @@ export const useAuthStore = create<AuthState>(
                     userId: user.id,
                     userType: type,
                   });
+                  const newUserData = {
+                    ...newProfile,
+                    id: user.id,
+                    userType: type,
+                  };
+
+                  // Store in cache
+                  profileCache.set(user.id, newUserData);
+
                   set({
-                    user: { ...newProfile, id: user.id, userType: type },
+                    user: newUserData,
                     userType: type,
                     isAuthenticated: true,
                     isLoading: false,
@@ -267,7 +315,7 @@ export const useAuthStore = create<AuthState>(
       signUp: async (
         email: string,
         password: string,
-        userData: Partial<User>
+        userData: Partial<User>,
       ) => {
         logger.info(`Attempting to sign up new user`, {
           email: email.substring(0, 3) + "***",
@@ -322,7 +370,7 @@ export const useAuthStore = create<AuthState>(
                   phone: userData.phone || "",
                   // Using snake_case for database column names
                 },
-                { onConflict: "id" }
+                { onConflict: "id" },
               );
 
             if (parentError) {
@@ -346,7 +394,7 @@ export const useAuthStore = create<AuthState>(
                   website: (userData as any).website || "",
                   // Using snake_case for database column names
                 },
-                { onConflict: "id" }
+                { onConflict: "id" },
               );
 
             if (organizerError) {
@@ -378,7 +426,7 @@ export const useAuthStore = create<AuthState>(
               logger.info("Auto sign-in successful");
             } catch (signInError) {
               console.log(
-                "Auto sign-in failed, user may need to confirm email"
+                "Auto sign-in failed, user may need to confirm email",
               );
               set({ isLoading: false });
               // We'll still consider this a successful registration
@@ -433,8 +481,8 @@ export const useAuthStore = create<AuthState>(
         isAuthenticated: state.isAuthenticated,
         userType: state.userType,
       }),
-    }
-  )
+    },
+  ),
 );
 
 // Set up auth state change listener
@@ -443,9 +491,14 @@ if (typeof window !== "undefined") {
     const authStore = useAuthStore.getState();
 
     if (event === "SIGNED_IN" && session) {
-      setTimeout(async () => {
-        await authStore.checkUser();
-      }, 0);
+      // Use a debounce mechanism to prevent multiple calls
+      if (!window._authCheckInProgress) {
+        window._authCheckInProgress = true;
+        setTimeout(async () => {
+          await authStore.checkUser();
+          window._authCheckInProgress = false;
+        }, 0);
+      }
     } else if (event === "SIGNED_OUT") {
       logger.debug("SIGNED_OUT event detected, resetting auth state");
       useAuthStore.setState({
@@ -463,7 +516,20 @@ if (typeof window !== "undefined") {
     }
   });
 
-  // Initial auth check
-  logger.info("Performing initial auth check on application load");
-  useAuthStore.getState().checkUser();
+  // Initial auth check - only if not already in progress
+  if (!window._authCheckInProgress) {
+    logger.info("Performing initial auth check on application load");
+    window._authCheckInProgress = true;
+    setTimeout(async () => {
+      await useAuthStore.getState().checkUser();
+      window._authCheckInProgress = false;
+    }, 0);
+  }
+}
+
+// Add TypeScript declaration for our custom property
+declare global {
+  interface Window {
+    _authCheckInProgress?: boolean;
+  }
 }

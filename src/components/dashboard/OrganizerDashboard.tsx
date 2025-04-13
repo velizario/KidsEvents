@@ -8,6 +8,7 @@ import {
   ChevronRight,
   Search,
   Loader,
+  User,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -103,7 +104,7 @@ const OrganizerDashboard = () => {
 
   // Filter events based on search query
   const filteredEvents = events.filter((event) =>
-    event.title?.toLowerCase().includes(searchQuery.toLowerCase())
+    event.title?.toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
   // Filter registrations based on search query
@@ -112,7 +113,7 @@ const OrganizerDashboard = () => {
       registration.childName
         .toLowerCase()
         .includes(searchQuery.toLowerCase()) ||
-      registration.eventTitle.toLowerCase().includes(searchQuery.toLowerCase())
+      registration.eventTitle.toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
   return (
@@ -127,11 +128,18 @@ const OrganizerDashboard = () => {
                 Manage your events and registrations
               </p>
             </div>
-            <Button asChild>
-              <Link to="/events/create">
-                <Plus className="h-4 w-4 mr-2" /> Create New Event
-              </Link>
-            </Button>
+            <div className="flex gap-2">
+              <Button variant="outline" asChild>
+                <Link to="/organizer/profile">
+                  <User className="h-4 w-4 mr-2" /> Edit Profile
+                </Link>
+              </Button>
+              <Button asChild>
+                <Link to="/events/create">
+                  <Plus className="h-4 w-4 mr-2" /> Create New Event
+                </Link>
+              </Button>
+            </div>
           </div>
         </div>
       </div>

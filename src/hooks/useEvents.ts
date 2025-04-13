@@ -106,8 +106,28 @@ export const useEvents = () => {
     }
   };
 
+  // Cache for events to prevent duplicate API calls
+  const eventCache = new Map();
+
   const fetchEvent = async (eventId: string) => {
     logger.debug("Starting fetchEvent", { eventId });
+
+    // Check if we already have this event in state
+    if (event && event.id === eventId) {
+      logger.debug("Event already in state, returning cached data", {
+        eventId,
+      });
+      return event;
+    }
+
+    // Check if we have this event in cache
+    if (eventCache.has(eventId)) {
+      logger.debug("Event found in cache, returning cached data", { eventId });
+      const cachedEvent = eventCache.get(eventId);
+      setEvent(cachedEvent);
+      return cachedEvent;
+    }
+
     try {
       console.log("Fetching event with ID:", eventId);
       setLoading(true);
@@ -125,6 +145,8 @@ export const useEvents = () => {
         return null;
       }
 
+      // Store in cache
+      eventCache.set(eventId, data);
       setEvent(data);
       logger.info("Successfully fetched event", { eventId });
       return data;

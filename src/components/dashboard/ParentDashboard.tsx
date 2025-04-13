@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { Calendar, Search, ChevronRight, Loader2 } from "lucide-react";
+import { Calendar, Search, ChevronRight, Loader2, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -80,11 +80,18 @@ const ParentDashboard = () => {
                 Manage your children's activities
               </p>
             </div>
-            <Button asChild>
-              <Link to="/events">
-                <Calendar className="h-4 w-4 mr-2" /> Browse Events
-              </Link>
-            </Button>
+            <div className="flex gap-2">
+              <Button variant="outline" asChild>
+                <Link to="/parent/profile">
+                  <User className="h-4 w-4 mr-2" /> Edit Profile
+                </Link>
+              </Button>
+              <Button asChild>
+                <Link to="/events">
+                  <Calendar className="h-4 w-4 mr-2" /> Browse Events
+                </Link>
+              </Button>
+            </div>
           </div>
         </div>
       </div>
