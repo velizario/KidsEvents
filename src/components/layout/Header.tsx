@@ -52,7 +52,9 @@ const Header = () => {
               <Link
                 key={link.name}
                 to={link.path}
-                className={`text-sm font-medium transition-colors hover:text-primary ${pathname === link.path ? "text-primary" : "text-foreground"}`}
+                className={`text-sm font-medium transition-colors hover:text-primary ${
+                  pathname === link.path ? "text-primary" : "text-foreground"
+                }`}
               >
                 {link.name}
               </Link>
@@ -128,7 +130,9 @@ const Header = () => {
                 <Link
                   key={link.name}
                   to={link.path}
-                  className={`text-sm font-medium transition-colors hover:text-primary ${pathname === link.path ? "text-primary" : "text-foreground"}`}
+                  className={`text-sm font-medium transition-colors hover:text-primary ${
+                    pathname === link.path ? "text-primary" : "text-foreground"
+                  }`}
                   onClick={() => setIsMenuOpen(false)}
                 >
                   {link.name}
@@ -151,7 +155,14 @@ const Header = () => {
                     </Link>
                   </Button>
                   <Button variant="outline" asChild>
-                    <Link to="/profile" onClick={() => setIsMenuOpen(false)}>
+                    <Link
+                      to={
+                        userType === "parent"
+                          ? "/parent/profile"
+                          : "/organizer/profile"
+                      }
+                      onClick={() => setIsMenuOpen(false)}
+                    >
                       Profile
                     </Link>
                   </Button>
