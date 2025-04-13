@@ -33,7 +33,7 @@ const parentProfileSchema = z.object({
       firstName: z.string().min(2, { message: "First name is required" }),
       lastName: z.string().min(2, { message: "Last name is required" }),
       dateOfBirth: z.string().min(1, { message: "Date of birth is required" }),
-    })
+    }),
   ),
 });
 
@@ -61,7 +61,7 @@ interface ProfileFormProps {
   userType: "parent" | "organizer";
   initialData?: ParentProfileFormValues | OrganizerProfileFormValues;
   onSubmit?: (
-    data: ParentProfileFormValues | OrganizerProfileFormValues
+    data: ParentProfileFormValues | OrganizerProfileFormValues,
   ) => void;
 }
 
@@ -128,7 +128,7 @@ const ProfileForm = ({
           setChildren(
             (user as any).children.map((child: any, index: number) => ({
               id: child.id || index + 1,
-            }))
+            })),
           );
         }
       } else {
@@ -196,6 +196,7 @@ const ProfileForm = ({
         description: "Your profile has been updated",
       });
 
+      // Force a refresh of the user data in the store
       await checkUser();
 
       if (onSubmit) onSubmit(data);
@@ -240,6 +241,7 @@ const ProfileForm = ({
         description: "Your profile has been updated",
       });
 
+      // Force a refresh of the user data in the store
       await checkUser();
 
       if (onSubmit) onSubmit(data);

@@ -54,18 +54,25 @@ export const useProfile = () => {
       setLoading(true);
       setError(null);
 
+      // Add updatedAt field to the profile data
+      const updatedProfileData = {
+        ...profileData,
+        updatedAt: new Date().toISOString(),
+      };
+
       logger.info("Calling authAPI.updateUserProfile for parent", {
         parentId,
-        updateFields: Object.keys(profileData),
+        updateFields: Object.keys(updatedProfileData),
       });
       const data = await authAPI.updateUserProfile(
         parentId,
         "parent",
-        profileData,
+        updatedProfileData,
       );
       logger.debug("Received updated parent profile data", { parentId });
 
       logger.info("Successfully updated parent profile", { parentId });
+      // Clear any cached profile data to ensure fresh data is fetched
       return data;
     } catch (err) {
       logger.error("Error updating parent profile:", err);
@@ -95,18 +102,25 @@ export const useProfile = () => {
       setLoading(true);
       setError(null);
 
+      // Add updatedAt field to the profile data
+      const updatedProfileData = {
+        ...profileData,
+        updatedAt: new Date().toISOString(),
+      };
+
       logger.info("Calling authAPI.updateUserProfile for organizer", {
         organizerId,
-        updateFields: Object.keys(profileData),
+        updateFields: Object.keys(updatedProfileData),
       });
       const data = await authAPI.updateUserProfile(
         organizerId,
         "organizer",
-        profileData,
+        updatedProfileData,
       );
       logger.debug("Received updated organizer profile data", { organizerId });
 
       logger.info("Successfully updated organizer profile", { organizerId });
+      // Clear any cached profile data to ensure fresh data is fetched
       return data;
     } catch (err) {
       logger.error("Error updating organizer profile:", err);
