@@ -33,7 +33,7 @@ const parentProfileSchema = z.object({
       firstName: z.string().min(2, { message: "First name is required" }),
       lastName: z.string().min(2, { message: "Last name is required" }),
       dateOfBirth: z.string().min(1, { message: "Date of birth is required" }),
-    }),
+    })
   ),
 });
 
@@ -61,7 +61,7 @@ interface ProfileFormProps {
   userType: "parent" | "organizer";
   initialData?: ParentProfileFormValues | OrganizerProfileFormValues;
   onSubmit?: (
-    data: ParentProfileFormValues | OrganizerProfileFormValues,
+    data: ParentProfileFormValues | OrganizerProfileFormValues
   ) => void;
 }
 
@@ -75,7 +75,7 @@ const ProfileForm = ({
     useProfile();
   const { toast } = useToast();
   const navigate = useNavigate();
-  const [children, setChildren] = useState([{ id: 1 }, { id: 2 }]);
+  const [children, setChildren] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Initialize form with user data if available
@@ -127,7 +127,7 @@ const ProfileForm = ({
           setChildren(
             (user as any).children.map((child: any, index: number) => ({
               id: child.id || index + 1,
-            })),
+            }))
           );
         }
       } else {

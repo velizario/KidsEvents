@@ -48,7 +48,7 @@ interface AuthState {
   signUp: (
     email: string,
     password: string,
-    userData: Partial<User>,
+    userData: Partial<User>
   ) => Promise<void>;
   signOut: () => Promise<void>;
   checkUser: () => Promise<void>;
@@ -126,7 +126,7 @@ export const useAuthStore = create<AuthState>(
               logger.info(
                 `Fetching profile for user ${user.id} from ${
                   type === "parent" ? "parents" : "organizers"
-                }`,
+                }`
               );
               const { data: profile, error: profileError } = await supabase
                 .from(type === "parent" ? "parents" : "organizers")
@@ -143,7 +143,6 @@ export const useAuthStore = create<AuthState>(
                   userType: type,
                 });
                 const userData = { ...profile, id: user.id, userType: type };
-
                 // Store in cache
                 profileCache.set(user.id, userData);
 
@@ -185,18 +184,18 @@ export const useAuthStore = create<AuthState>(
                         last_name: userData.lastName || "",
                         phone: userData.phone || "",
                       },
-                      { onConflict: "id" },
+                      { onConflict: "id" }
                     );
 
                   if (parentError) {
                     logger.error(
                       "Error creating parent profile after auth:",
-                      parentError,
+                      parentError
                     );
                   } else {
                     logger.info(
                       "Successfully created parent profile after auth",
-                      { userId: user.id },
+                      { userId: user.id }
                     );
                   }
                 } else {
@@ -212,18 +211,18 @@ export const useAuthStore = create<AuthState>(
                         phone: userData.phone || "",
                         website: userData.website || "",
                       },
-                      { onConflict: "id" },
+                      { onConflict: "id" }
                     );
 
                   if (organizerError) {
                     logger.error(
                       "Error creating organizer profile after auth:",
-                      organizerError,
+                      organizerError
                     );
                   } else {
                     logger.info(
                       "Successfully created organizer profile after auth",
-                      { userId: user.id },
+                      { userId: user.id }
                     );
                   }
                 }
@@ -315,7 +314,7 @@ export const useAuthStore = create<AuthState>(
       signUp: async (
         email: string,
         password: string,
-        userData: Partial<User>,
+        userData: Partial<User>
       ) => {
         logger.info(`Attempting to sign up new user`, {
           email: email.substring(0, 3) + "***",
@@ -370,7 +369,7 @@ export const useAuthStore = create<AuthState>(
                   phone: userData.phone || "",
                   // Using snake_case for database column names
                 },
-                { onConflict: "id" },
+                { onConflict: "id" }
               );
 
             if (parentError) {
@@ -394,7 +393,7 @@ export const useAuthStore = create<AuthState>(
                   website: (userData as any).website || "",
                   // Using snake_case for database column names
                 },
-                { onConflict: "id" },
+                { onConflict: "id" }
               );
 
             if (organizerError) {
@@ -426,7 +425,7 @@ export const useAuthStore = create<AuthState>(
               logger.info("Auto sign-in successful");
             } catch (signInError) {
               console.log(
-                "Auto sign-in failed, user may need to confirm email",
+                "Auto sign-in failed, user may need to confirm email"
               );
               set({ isLoading: false });
               // We'll still consider this a successful registration
@@ -481,8 +480,8 @@ export const useAuthStore = create<AuthState>(
         isAuthenticated: state.isAuthenticated,
         userType: state.userType,
       }),
-    },
-  ),
+    }
+  )
 );
 
 // Set up auth state change listener
