@@ -3,6 +3,7 @@ import { persist, createJSONStorage } from "zustand/middleware";
 import { supabase } from "@/lib/supabase";
 import { User } from "@/types/models";
 import { useNavigate } from "react-router-dom";
+import { keysToCamelCase } from "@/lib/utils";
 
 // Configure logging level
 const LOG_LEVEL = {
@@ -12,8 +13,13 @@ const LOG_LEVEL = {
   ERROR: 3,
 };
 
+type PersistedAuthState = Pick<
+  AuthState,
+  "user" | "isAuthenticated" | "userType"
+>;
+
 // Set current log level - can be adjusted for production/development
-const CURRENT_LOG_LEVEL = LOG_LEVEL.DEBUG;
+const CURRENT_LOG_LEVEL = LOG_LEVEL.DEBUG; // Assuming DEBUG for development
 
 // Logging utility functions
 const logger = {
@@ -57,8 +63,8 @@ interface AuthState {
 // Cache for user profiles to prevent duplicate API calls
 const profileCache = new Map();
 
-export const useAuthStore = create<AuthState>(
-  persist(
+export const useAuthStore = create(
+  persist<AuthState, [], [], PersistedAuthState>(
     (set, get) => ({
       user: null,
       isLoading: true,
@@ -68,14 +74,15 @@ export const useAuthStore = create<AuthState>(
       checkUser: async () => {
         logger.debug("Starting checkUser process");
         try {
-          // Skip actual API calls if using placeholder URL
-          if (supabase.supabaseUrl === "https://placeholder-url.supabase.co") {
+          if (
+            import.meta.env.VITE_SUPABASE_URL ===
+            "https://placeholder-url.supabase.co"
+          ) {
             logger.info("Using placeholder Supabase URL - skipping auth check");
             set({ isLoading: false });
             return;
           }
 
-          // Get current state
           const currentState = get();
 
           logger.debug("Fetching current session");
@@ -93,7 +100,6 @@ export const useAuthStore = create<AuthState>(
               userId: user?.id,
             });
             if (user) {
-              // Check if we already have this user's profile in state
               if (
                 currentState.user &&
                 currentState.user.id === user.id &&
@@ -106,7 +112,6 @@ export const useAuthStore = create<AuthState>(
                 return;
               }
 
-              // Check if we have this user's profile in cache
               if (profileCache.has(user.id)) {
                 logger.debug("User profile found in cache, using cached data", {
                   userId: user.id,
@@ -121,10 +126,9 @@ export const useAuthStore = create<AuthState>(
                 return;
               }
 
-              // Get user profile data from the appropriate table
               const type = user.user_metadata?.userType || "parent";
               logger.info(
-                `Fetching profile for user ${user.id} from ${
+                `Workspaceing profile for user ${user.id} from ${
                   type === "parent" ? "parents" : "organizers"
                 }`
               );
@@ -142,8 +146,12 @@ export const useAuthStore = create<AuthState>(
                 logger.info(`Profile found for user ${user.id}`, {
                   userType: type,
                 });
-                const userData = { ...profile, id: user.id, userType: type };
-                // Store in cache
+                const camelCaseProfile = keysToCamelCase(profile); //convertfrom DBs snake_case to DTOs camelCase
+                const userData = {
+                  ...camelCaseProfile,
+                  id: user.id,
+                  userType: type,
+                };
                 profileCache.set(user.id, userData);
 
                 set({
@@ -154,7 +162,6 @@ export const useAuthStore = create<AuthState>(
                 });
                 logger.debug("Auth state updated with profile data");
               } else {
-                // If profile doesn't exist yet (e.g., after email confirmation), create it
                 logger.warn("Profile not found, creating from user metadata", {
                   userId: user.id,
                   userType: type,
@@ -172,7 +179,6 @@ export const useAuthStore = create<AuthState>(
                   website: user.user_metadata?.website,
                 };
 
-                // Create profile in the appropriate table
                 if (type === "parent") {
                   const { error: parentError } = await supabase
                     .from("parents")
@@ -227,7 +233,6 @@ export const useAuthStore = create<AuthState>(
                   }
                 }
 
-                // Fetch the newly created profile
                 const { data: newProfile } = await supabase
                   .from(type === "parent" ? "parents" : "organizers")
                   .select("*")
@@ -239,13 +244,13 @@ export const useAuthStore = create<AuthState>(
                     userId: user.id,
                     userType: type,
                   });
+                  const camelCaseNewProfile = keysToCamelCase(newProfile);
                   const newUserData = {
-                    ...newProfile,
+                    ...camelCaseNewProfile,
                     id: user.id,
                     userType: type,
                   };
 
-                  // Store in cache
                   profileCache.set(user.id, newUserData);
 
                   set({
@@ -263,7 +268,23 @@ export const useAuthStore = create<AuthState>(
               set({ isLoading: false });
             }
           } else {
-            set({ isLoading: false });
+            // No session, ensure user is logged out in state
+            if (currentState.isAuthenticated || currentState.user) {
+              //
+              logger.info(
+                "No active session found, ensuring user is logged out in state."
+              ); //
+              profileCache.clear(); //
+              set({
+                user: null,
+                isAuthenticated: false,
+                isLoading: false,
+                userType: null,
+              }); //
+            } else {
+              //
+              set({ isLoading: false }); //
+            } //
           }
         } catch (error) {
           logger.error("Error checking user:", error);
@@ -299,7 +320,6 @@ export const useAuthStore = create<AuthState>(
             email: email.substring(0, 3) + "***",
           });
 
-          // The auth state change listener will handle setting the user
           logger.debug("Calling checkUser to update auth state");
           await get().checkUser();
         } catch (error) {
@@ -334,7 +354,6 @@ export const useAuthStore = create<AuthState>(
                 firstName: userData.firstName,
                 lastName: userData.lastName,
               },
-              // Skip email verification for development
               emailRedirectTo: window.location.origin,
             },
           });
@@ -352,7 +371,6 @@ export const useAuthStore = create<AuthState>(
             userType: userData.userType,
           });
 
-          // Create profile in the appropriate table with upsert to handle both initial creation and post-confirmation
           logger.debug("Creating user profile", {
             userType: userData.userType,
             userId: data.user?.id,
@@ -367,7 +385,6 @@ export const useAuthStore = create<AuthState>(
                   first_name: userData.firstName,
                   last_name: userData.lastName,
                   phone: userData.phone || "",
-                  // Using snake_case for database column names
                 },
                 { onConflict: "id" }
               );
@@ -391,7 +408,6 @@ export const useAuthStore = create<AuthState>(
                   description: (userData as any).description || "",
                   phone: userData.phone || "",
                   website: (userData as any).website || "",
-                  // Using snake_case for database column names
                 },
                 { onConflict: "id" }
               );
@@ -405,48 +421,22 @@ export const useAuthStore = create<AuthState>(
             }
           }
 
-          // For development, auto-confirm the email
-          if (supabase.supabaseUrl === "https://placeholder-url.supabase.co") {
-            logger.info("Using mock authentication for development");
-            // Mock successful sign-in for development
-            set({
-              user: { ...userData, id: "mock-user-id" } as User,
-              userType: userData.userType as "parent" | "organizer",
-              isAuthenticated: true,
-              isLoading: false,
-            });
-            logger.debug("Auth state updated with mock user data");
-          } else {
-            // In production, we'd show a message to check email
-            // For demo, we'll try to sign in directly
-            try {
-              logger.debug("Attempting auto sign-in after registration");
-              await get().signIn(email, password);
-              logger.info("Auto sign-in successful");
-            } catch (signInError) {
-              console.log(
-                "Auto sign-in failed, user may need to confirm email"
-              );
-              set({ isLoading: false });
-              // We'll still consider this a successful registration
-            }
+          try {
+            await get().signIn(email, password);
+            logger.info("Auto sign-in after registration successful");
+          } catch (signInError) {
+            set({ isLoading: false });
           }
         } catch (error) {
-          logger.error("Error signing up:", error);
           set({ isLoading: false });
-          logger.debug("Auth loading state set to false after error");
           throw error;
         }
-        logger.debug("Completed sign up process");
       },
 
       signOut: async () => {
-        logger.info("Attempting to sign out user");
         try {
-          logger.debug("Setting loading state to true");
-          set({ isLoading: true });
+          set({ isLoading: true }); //
 
-          logger.debug("Calling Supabase signOut");
           const { error } = await supabase.auth.signOut();
 
           if (error) {
@@ -454,22 +444,17 @@ export const useAuthStore = create<AuthState>(
             throw error;
           }
 
-          logger.info("Sign out successful");
-
+          profileCache.clear(); //
           set({
             user: null,
             userType: null,
             isAuthenticated: false,
             isLoading: false,
           });
-          logger.debug("Auth state reset after sign out");
         } catch (error) {
-          logger.error("Error signing out:", error);
           set({ isLoading: false });
-          logger.debug("Auth loading state set to false after error");
           throw error;
         }
-        logger.debug("Completed sign out process");
       },
     }),
     {
@@ -486,47 +471,85 @@ export const useAuthStore = create<AuthState>(
 
 // Set up auth state change listener
 if (typeof window !== "undefined") {
-  const { data } = supabase.auth.onAuthStateChange(async (event, session) => {
-    const authStore = useAuthStore.getState();
-
-    if (event === "SIGNED_IN" && session) {
-      // Use a debounce mechanism to prevent multiple calls
-      if (!window._authCheckInProgress) {
-        window._authCheckInProgress = true;
-        setTimeout(async () => {
-          await authStore.checkUser();
-          window._authCheckInProgress = false;
-        }, 0);
-      }
-    } else if (event === "SIGNED_OUT") {
-      logger.debug("SIGNED_OUT event detected, resetting auth state");
-      useAuthStore.setState({
-        user: null,
-        userType: null,
-        isAuthenticated: false,
+  const { data: authListener } = supabase.auth.onAuthStateChange(
+    async (event, session) => {
+      const authStore = useAuthStore.getState();
+      logger.debug(`onAuthStateChange event: ${event}`, {
+        hasSession: !!session,
       });
-      logger.debug("Auth state reset after SIGNED_OUT event");
 
-      // Redirect to login page on sign out
-      if (typeof window !== "undefined") {
-        logger.debug("Redirecting to login page after sign out");
-        window.location.href = "/login";
+      if (session) {
+        if (
+          event === "SIGNED_IN" ||
+          event === "TOKEN_REFRESHED" ||
+          event === "USER_UPDATED" ||
+          event === "INITIAL_SESSION"
+        ) {
+          const currentUserId = authStore.user?.id;
+          const newUserId = session.user.id;
+
+          if (
+            newUserId !== currentUserId ||
+            !authStore.isAuthenticated ||
+            event === "USER_UPDATED"
+          ) {
+            logger.info(
+              `Auth state change requires checkUser (${event}, user: ${newUserId}, previously authenticated: ${authStore.isAuthenticated})`
+            );
+            if (!window._authCheckInProgress) {
+              window._authCheckInProgress = true;
+              setTimeout(async () => {
+                logger.debug("Debounced checkUser call starting.");
+                await authStore.checkUser();
+                window._authCheckInProgress = false;
+                logger.debug("Debounced checkUser call finished.");
+              }, 0);
+            } else {
+              logger.debug(
+                "checkUser call already in progress, skipping duplicate trigger."
+              );
+            }
+          } else {
+            logger.debug(
+              `Auth event (${event}) for same authenticated user (${newUserId}). Skipping full checkUser.`
+            );
+            if (authStore.isLoading) {
+              useAuthStore.setState({ isLoading: false });
+            }
+          }
+        }
+      } else if (event === "SIGNED_OUT") {
+        logger.debug("SIGNED_OUT event detected, resetting auth state");
+        profileCache.clear();
+        logger.debug("Profile cache cleared.");
+        useAuthStore.setState({
+          user: null,
+          userType: null,
+          isAuthenticated: false,
+          isLoading: false,
+        });
+        logger.debug("Auth state reset after SIGNED_OUT event");
+
+        if (typeof window !== "undefined") {
+          logger.debug("Redirecting to login page after sign out");
+          window.location.href = "/login";
+        }
       }
     }
-  });
+  );
 
-  // Initial auth check - only if not already in progress
   if (!window._authCheckInProgress) {
     logger.info("Performing initial auth check on application load");
     window._authCheckInProgress = true;
     setTimeout(async () => {
+      logger.debug("Initial debounced checkUser call starting.");
       await useAuthStore.getState().checkUser();
       window._authCheckInProgress = false;
+      logger.debug("Initial debounced checkUser call finished.");
     }, 0);
   }
 }
 
-// Add TypeScript declaration for our custom property
 declare global {
   interface Window {
     _authCheckInProgress?: boolean;

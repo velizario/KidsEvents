@@ -71,6 +71,7 @@ const ProfileForm = ({
   onSubmit,
 }: ProfileFormProps) => {
   const { user, isAuthenticated } = useAuthStore();
+  const checkUser = useAuthStore((state) => state.checkUser);
   const { updateParentProfile, updateOrganizerProfile, loading, error } =
     useProfile();
   const { toast } = useToast();
@@ -152,8 +153,6 @@ const ProfileForm = ({
         firstName: "",
         lastName: "",
         dateOfBirth: "",
-        allergies: "",
-        specialNeeds: "",
       },
     ]);
   };
@@ -197,6 +196,8 @@ const ProfileForm = ({
         description: "Your profile has been updated",
       });
 
+      await checkUser();
+
       if (onSubmit) onSubmit(data);
 
       // Redirect to dashboard
@@ -238,6 +239,8 @@ const ProfileForm = ({
         title: "Success",
         description: "Your profile has been updated",
       });
+
+      await checkUser();
 
       if (onSubmit) onSubmit(data);
 
