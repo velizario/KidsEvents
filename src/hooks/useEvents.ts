@@ -11,7 +11,7 @@ const LOG_LEVEL = {
 };
 
 // Set current log level - can be adjusted for production/development
-const CURRENT_LOG_LEVEL = LOG_LEVEL.DEBUG;
+const CURRENT_LOG_LEVEL = LOG_LEVEL.INFO;
 
 // Logging utility functions
 const logger = {
@@ -66,7 +66,7 @@ export const useEvents = () => {
     } catch (err) {
       logger.error("Error fetching events:", err);
       setError(
-        err instanceof Error ? err : new Error("Failed to fetch events"),
+        err instanceof Error ? err : new Error("Failed to fetch events")
       );
       throw err;
     } finally {
@@ -96,7 +96,7 @@ export const useEvents = () => {
       setError(
         err instanceof Error
           ? err
-          : new Error("Failed to fetch organizer events"),
+          : new Error("Failed to fetch organizer events")
       );
       throw err;
     } finally {
@@ -167,7 +167,7 @@ export const useEvents = () => {
     eventData: Omit<
       Event,
       "id" | "organizerId" | "registrations" | "createdAt" | "updatedAt"
-    >,
+    >
   ) => {
     logger.debug("Starting createEvent", {
       organizerId,
@@ -194,7 +194,7 @@ export const useEvents = () => {
     } catch (err) {
       logger.error("Error creating event:", err);
       setError(
-        err instanceof Error ? err : new Error("Failed to create event"),
+        err instanceof Error ? err : new Error("Failed to create event")
       );
       throw err;
     } finally {
@@ -230,7 +230,7 @@ export const useEvents = () => {
     } catch (err) {
       logger.error("Error updating event:", err);
       setError(
-        err instanceof Error ? err : new Error("Failed to update event"),
+        err instanceof Error ? err : new Error("Failed to update event")
       );
       throw err;
     } finally {
@@ -259,7 +259,7 @@ export const useEvents = () => {
     } catch (err) {
       logger.error("Error deleting event:", err);
       setError(
-        err instanceof Error ? err : new Error("Failed to delete event"),
+        err instanceof Error ? err : new Error("Failed to delete event")
       );
       throw err;
     } finally {
@@ -293,7 +293,7 @@ export const useEvents = () => {
       setError(
         err instanceof Error
           ? err
-          : new Error("Failed to fetch event participants"),
+          : new Error("Failed to fetch event participants")
       );
       throw err;
     } finally {

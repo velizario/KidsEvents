@@ -44,7 +44,7 @@ const RegistrationDetails = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [registrationData, setRegistrationData] = useState<Registration | null>(
-    null,
+    null
   );
 
   useEffect(() => {
@@ -74,7 +74,7 @@ const RegistrationDetails = () => {
       setLoading(true);
       await registrationAPI.updateRegistrationStatus(
         registrationId,
-        "cancelled",
+        "cancelled"
       );
       // Refresh the registration data
       const updatedData = await registrationAPI.getRegistration(registrationId);
@@ -186,15 +186,15 @@ const RegistrationDetails = () => {
                       registrationData.status === "confirmed"
                         ? "default"
                         : registrationData.status === "pending"
-                          ? "secondary"
-                          : "destructive"
+                        ? "secondary"
+                        : "destructive"
                     }
                   >
                     {registrationData.status === "confirmed"
                       ? "Confirmed"
                       : registrationData.status === "pending"
-                        ? "Pending"
-                        : "Cancelled"}
+                      ? "Pending"
+                      : "Cancelled"}
                   </Badge>
                 </div>
                 <CardDescription>
@@ -286,20 +286,6 @@ const RegistrationDetails = () => {
                           {registrationData.child?.age ? "years" : ""}
                         </p>
                       </div>
-                      <div>
-                        <p className="text-sm text-muted-foreground">
-                          Allergies
-                        </p>
-                        <p>{registrationData.child?.allergies || "None"}</p>
-                      </div>
-                      {registrationData.child?.specialNeeds && (
-                        <div>
-                          <p className="text-sm text-muted-foreground">
-                            Special Needs
-                          </p>
-                          <p>{registrationData.child?.specialNeeds}</p>
-                        </div>
-                      )}
                     </div>
                   </div>
 

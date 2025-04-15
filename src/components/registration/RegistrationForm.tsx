@@ -138,7 +138,7 @@ const RegistrationForm = ({
           if (userError) {
             console.error("Error getting authenticated user:", userError);
             throw new Error(
-              "Failed to get authenticated user: " + userError.message,
+              "Failed to get authenticated user: " + userError.message
             );
           }
 
@@ -155,14 +155,12 @@ const RegistrationForm = ({
             last_name: childFormData.lastName,
             age: parseInt(childFormData.age),
             date_of_birth: dateOfBirth, // Add the date_of_birth field
-            allergies: childFormData.allergies || null,
-            special_needs: childFormData.specialNeeds || null,
           });
 
           if (childError) {
             console.error("Error creating child record:", childError);
             throw new Error(
-              "Failed to create child record: " + childError.message,
+              "Failed to create child record: " + childError.message
             );
           }
         } catch (childError) {
@@ -171,7 +169,7 @@ const RegistrationForm = ({
             "Failed to create child record: " +
               (childError instanceof Error
                 ? childError.message
-                : String(childError)),
+                : String(childError))
           );
         }
 
@@ -182,7 +180,7 @@ const RegistrationForm = ({
         if (userError) {
           console.error("Error getting authenticated user:", userError);
           throw new Error(
-            "Failed to get authenticated user: " + userError.message,
+            "Failed to get authenticated user: " + userError.message
           );
         }
 
@@ -203,7 +201,7 @@ const RegistrationForm = ({
         if (checkParentError) {
           console.error(
             "Error checking for existing parent:",
-            checkParentError,
+            checkParentError
           );
         }
 
@@ -220,7 +218,7 @@ const RegistrationForm = ({
           if (parentError) {
             console.error("Error creating parent record:", parentError);
             throw new Error(
-              "Failed to create parent record: " + parentError.message,
+              "Failed to create parent record: " + parentError.message
             );
           }
           console.log("Created new parent record");
@@ -237,7 +235,7 @@ const RegistrationForm = ({
             parentId: actualParentId,
             emergencyContact: data.emergencyContact,
             paymentMethod: data.paymentMethod,
-          },
+          }
         );
         console.log("Registration successful:", registration);
       } catch (registrationError) {
@@ -256,7 +254,7 @@ const RegistrationForm = ({
       setSubmitError(
         error instanceof Error
           ? error
-          : new Error("Failed to complete registration"),
+          : new Error("Failed to complete registration")
       );
     } finally {
       setIsSubmitting(false);
@@ -369,44 +367,6 @@ const RegistrationForm = ({
                                   <Input
                                     type="number"
                                     placeholder="8"
-                                    {...field}
-                                  />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                          <FormField
-                            control={form.control}
-                            name={`children.${index}.allergies`}
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Allergies</FormLabel>
-                                <FormControl>
-                                  <Textarea
-                                    placeholder="List any allergies or write 'None'"
-                                    className="resize-none"
-                                    {...field}
-                                  />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-
-                          <FormField
-                            control={form.control}
-                            name={`children.${index}.specialNeeds`}
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Special Needs</FormLabel>
-                                <FormControl>
-                                  <Textarea
-                                    placeholder="Any special needs or accommodations"
-                                    className="resize-none"
                                     {...field}
                                   />
                                 </FormControl>

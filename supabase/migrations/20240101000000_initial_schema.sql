@@ -45,8 +45,6 @@ CREATE TABLE children (
   last_name TEXT NOT NULL,
   date_of_birth DATE NOT NULL,
   age INTEGER,
-  allergies TEXT,
-  special_needs TEXT,
   parent_id UUID NOT NULL REFERENCES parents(id) ON DELETE CASCADE,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()

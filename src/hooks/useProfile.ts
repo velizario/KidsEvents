@@ -11,7 +11,7 @@ const LOG_LEVEL = {
 };
 
 // Set current log level - can be adjusted for production/development
-const CURRENT_LOG_LEVEL = LOG_LEVEL.DEBUG;
+const CURRENT_LOG_LEVEL = LOG_LEVEL.INFO;
 
 // Logging utility functions
 const logger = {
@@ -45,7 +45,7 @@ export const useProfile = () => {
     parentId: string,
     profileData: Partial<Parent>,
     childrenData?: Partial<Child>[],
-    deletedChildrenIds?: string[],
+    deletedChildrenIds?: string[]
   ) => {
     // Log the children data being received
     console.log("Children data received in updateParentProfile:", childrenData);
@@ -78,7 +78,7 @@ export const useProfile = () => {
         "parent",
         updatedProfileData,
         childrenData,
-        deletedChildrenIds,
+        deletedChildrenIds
       );
 
       logger.debug("Received updated parent profile data", { parentId });
@@ -90,7 +90,7 @@ export const useProfile = () => {
       setError(
         err instanceof Error
           ? err
-          : new Error("Failed to update parent profile"),
+          : new Error("Failed to update parent profile")
       );
       throw err;
     } finally {
@@ -102,7 +102,7 @@ export const useProfile = () => {
 
   const updateOrganizerProfile = async (
     organizerId: string,
-    profileData: Partial<Organizer>,
+    profileData: Partial<Organizer>
   ) => {
     logger.debug("Starting updateOrganizerProfile", {
       organizerId,
@@ -126,7 +126,7 @@ export const useProfile = () => {
       const data = await authAPI.updateUserProfile(
         organizerId,
         "organizer",
-        updatedProfileData,
+        updatedProfileData
       );
       logger.debug("Received updated organizer profile data", { organizerId });
 
@@ -138,7 +138,7 @@ export const useProfile = () => {
       setError(
         err instanceof Error
           ? err
-          : new Error("Failed to update organizer profile"),
+          : new Error("Failed to update organizer profile")
       );
       throw err;
     } finally {
@@ -150,7 +150,7 @@ export const useProfile = () => {
 
   const addChild = async (
     parentId: string,
-    childData: Omit<Child, "id" | "parentId">,
+    childData: Omit<Child, "id" | "parentId">
   ) => {
     logger.debug("Starting addChild", {
       parentId,
@@ -209,14 +209,16 @@ export const useProfile = () => {
         childId: data.id,
         childName:
           childData.firstName || childData.lastName
-            ? `${childData.firstName || data.firstName} ${childData.lastName || data.lastName}`
+            ? `${childData.firstName || data.firstName} ${
+                childData.lastName || data.lastName
+              }`
             : undefined,
       });
       return data;
     } catch (err) {
       logger.error("Error updating child:", err);
       setError(
-        err instanceof Error ? err : new Error("Failed to update child"),
+        err instanceof Error ? err : new Error("Failed to update child")
       );
       throw err;
     } finally {
@@ -241,7 +243,7 @@ export const useProfile = () => {
     } catch (err) {
       logger.error("Error deleting child:", err);
       setError(
-        err instanceof Error ? err : new Error("Failed to delete child"),
+        err instanceof Error ? err : new Error("Failed to delete child")
       );
       throw err;
     } finally {
@@ -274,7 +276,7 @@ export const useProfile = () => {
     } catch (err) {
       logger.error("Error getting children:", err);
       setError(
-        err instanceof Error ? err : new Error("Failed to get children"),
+        err instanceof Error ? err : new Error("Failed to get children")
       );
       throw err;
     } finally {
@@ -309,7 +311,7 @@ export const useProfile = () => {
       setError(
         err instanceof Error
           ? err
-          : new Error("Failed to get parent registrations"),
+          : new Error("Failed to get parent registrations")
       );
       throw err;
     } finally {

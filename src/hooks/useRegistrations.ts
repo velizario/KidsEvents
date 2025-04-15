@@ -11,7 +11,7 @@ const LOG_LEVEL = {
 };
 
 // Set current log level - can be adjusted for production/development
-const CURRENT_LOG_LEVEL = LOG_LEVEL.DEBUG;
+const CURRENT_LOG_LEVEL = LOG_LEVEL.INFO;
 
 // Logging utility functions
 const logger = {
@@ -54,7 +54,7 @@ export const useRegistrations = () => {
         relationship: string;
       };
       paymentMethod?: string;
-    },
+    }
   ) => {
     logger.debug("Starting registerForEvent", {
       eventId,
@@ -72,7 +72,7 @@ export const useRegistrations = () => {
       });
       const data = await registrationAPI.registerForEvent(
         eventId,
-        registrationData,
+        registrationData
       );
       logger.debug("Received registration data", { registrationId: data.id });
 
@@ -86,7 +86,7 @@ export const useRegistrations = () => {
     } catch (err) {
       logger.error("Error registering for event:", err);
       setError(
-        err instanceof Error ? err : new Error("Failed to register for event"),
+        err instanceof Error ? err : new Error("Failed to register for event")
       );
       throw err;
     } finally {
@@ -121,7 +121,7 @@ export const useRegistrations = () => {
     } catch (err) {
       logger.error("Error cancelling registration:", err);
       setError(
-        err instanceof Error ? err : new Error("Failed to cancel registration"),
+        err instanceof Error ? err : new Error("Failed to cancel registration")
       );
       throw err;
     } finally {
@@ -156,7 +156,7 @@ export const useRegistrations = () => {
     } catch (err) {
       logger.error("Error fetching registration:", err);
       setError(
-        err instanceof Error ? err : new Error("Failed to fetch registration"),
+        err instanceof Error ? err : new Error("Failed to fetch registration")
       );
       throw err;
     } finally {
@@ -168,7 +168,7 @@ export const useRegistrations = () => {
 
   const updateRegistrationStatus = async (
     registrationId: string,
-    status: "pending" | "confirmed" | "cancelled",
+    status: "pending" | "confirmed" | "cancelled"
   ) => {
     logger.debug("Starting updateRegistrationStatus", {
       registrationId,
@@ -185,7 +185,7 @@ export const useRegistrations = () => {
       });
       const data = await registrationAPI.updateRegistrationStatus(
         registrationId,
-        status,
+        status
       );
       logger.debug("Received updated registration data", {
         registrationId: data.id,
@@ -203,7 +203,7 @@ export const useRegistrations = () => {
       setError(
         err instanceof Error
           ? err
-          : new Error("Failed to update registration status"),
+          : new Error("Failed to update registration status")
       );
       throw err;
     } finally {
@@ -215,7 +215,7 @@ export const useRegistrations = () => {
 
   const updatePaymentStatus = async (
     registrationId: string,
-    paymentStatus: "pending" | "paid" | "refunded",
+    paymentStatus: "pending" | "paid" | "refunded"
   ) => {
     logger.debug("Starting updatePaymentStatus", {
       registrationId,
@@ -232,7 +232,7 @@ export const useRegistrations = () => {
       });
       const data = await registrationAPI.updatePaymentStatus(
         registrationId,
-        paymentStatus,
+        paymentStatus
       );
       logger.debug("Received updated payment status data", {
         registrationId: data.id,
@@ -250,7 +250,7 @@ export const useRegistrations = () => {
       setError(
         err instanceof Error
           ? err
-          : new Error("Failed to update payment status"),
+          : new Error("Failed to update payment status")
       );
       throw err;
     } finally {

@@ -15,8 +15,6 @@ const formSchema = z.object({
           .refine((val) => !isNaN(parseInt(val)) && parseInt(val) > 0, {
             message: "Please enter a valid age",
           }),
-        allergies: z.string().optional(),
-        specialNeeds: z.string().optional(),
       })
     )
     .min(1, { message: "At least one child must be registered" }),
@@ -47,8 +45,6 @@ export const useRegistrationForm = () => {
           firstName: "",
           lastName: "",
           age: "",
-          allergies: "",
-          specialNeeds: "",
         },
       ],
       emergencyContact: {
@@ -70,8 +66,6 @@ export const useRegistrationForm = () => {
         firstName: "",
         lastName: "",
         age: "",
-        allergies: "",
-        specialNeeds: "",
       },
     ]);
   };

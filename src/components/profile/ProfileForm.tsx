@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { User, Mail, Phone, Plus, Trash2, Loader2 } from "lucide-react";
@@ -21,19 +21,22 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/components/ui/use-toast";
 import { useAuthStore } from "@/store/authStore";
 import { useProfile } from "@/hooks/useProfile";
+// Assuming Child type might be needed, adjust path if necessary
+import { Child, Parent } from "@/types/models";
+
+const childSchema = z.object({
+  id: z.string().optional(),
+  firstName: z.string().min(2, { message: "First name is required" }),
+  lastName: z.string().min(2, { message: "Last name is required" }),
+  dateOfBirth: z.string().min(1, { message: "Date of birth is required" }),
+});
 
 const parentProfileSchema = z.object({
   firstName: z.string().min(2, { message: "First name is required" }),
   lastName: z.string().min(2, { message: "Last name is required" }),
   email: z.string().email({ message: "Please enter a valid email address" }),
   phone: z.string().min(10, { message: "Please enter a valid phone number" }),
-  children: z.array(
-    z.object({
-      firstName: z.string().min(2, { message: "First name is required" }),
-      lastName: z.string().min(2, { message: "Last name is required" }),
-      dateOfBirth: z.string().min(1, { message: "Date of birth is required" }),
-    }),
-  ),
+  children: z.array(childSchema),
 });
 
 type ParentProfileFormValues = z.infer<typeof parentProfileSchema>;
@@ -60,7 +63,7 @@ interface ProfileFormProps {
   userType: "parent" | "organizer";
   initialData?: ParentProfileFormValues | OrganizerProfileFormValues;
   onSubmit?: (
-    data: ParentProfileFormValues | OrganizerProfileFormValues,
+    data: ParentProfileFormValues | OrganizerProfileFormValues
   ) => void;
 }
 
@@ -74,62 +77,59 @@ const ProfileForm = ({
   const { updateParentProfile, updateOrganizerProfile, loading, error } =
     useProfile();
   const { toast } = useToast();
-  const [children, setChildren] = useState([]);
   const [deletedChildrenIds, setDeletedChildrenIds] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Initialize form with user data if available
   const parentForm = useForm<ParentProfileFormValues>({
     resolver: zodResolver(parentProfileSchema),
     defaultValues: {
-      firstName: user?.firstName || "",
-      lastName: user?.lastName || "",
-      email: user?.email || "",
-      phone: user?.phone || "",
-      children: (user as any)?.children || [
-        {
-          firstName: "",
-          lastName: "",
-          dateOfBirth: "",
-        },
-      ],
+      firstName: "",
+      lastName: "",
+      email: "",
+      phone: "",
+      children: [],
       ...(initialData as ParentProfileFormValues),
     },
+  });
+
+  const { fields, append, remove, prepend } = useFieldArray({
+    control: parentForm.control,
+    name: "children",
+    keyName: "fieldId",
   });
 
   const organizerForm = useForm<OrganizerProfileFormValues>({
     resolver: zodResolver(organizerProfileSchema),
     defaultValues: {
-      organizationName: (user as any)?.organizationName || "",
-      contactName: (user as any)?.contactName || "",
-      email: user?.email || "",
-      phone: user?.phone || "",
-      description: (user as any)?.description || "",
-      website: (user as any)?.website || "",
+      organizationName: "",
+      contactName: "",
+      email: "",
+      phone: "",
+      description: "",
+      website: "",
       ...(initialData as OrganizerProfileFormValues),
     },
   });
 
-  // Update form when user data changes
   useEffect(() => {
-    if (user) {
+    if (user && user.id) {
       if (userType === "parent") {
+        const parentUser = user as Parent & { children?: Child[] };
         parentForm.reset({
-          firstName: user.firstName || "",
-          lastName: user.lastName || "",
-          email: user.email || "",
-          phone: user.phone || "",
-          children: (user as any).children || [],
+          firstName: parentUser.firstName || "",
+          lastName: parentUser.lastName || "",
+          email: parentUser.email || "",
+          phone: parentUser.phone || "",
+          // Existing children are loaded in their current order. New children will be prepended.
+          children:
+            parentUser.children?.map((child) => ({
+              id: child.id,
+              firstName: child.firstName || "",
+              lastName: child.lastName || "",
+              dateOfBirth: child.dateOfBirth || "",
+            })) || [],
         });
-
-        // Update children state for UI
-        if ((user as any).children && (user as any).children.length > 0) {
-          setChildren(
-            (user as any).children.map((child: any, index: number) => ({
-              id: child.id || index + 1,
-            })),
-          );
-        }
+        setDeletedChildrenIds([]);
       } else {
         organizerForm.reset({
           organizationName: (user as any).organizationName || "",
@@ -141,65 +141,23 @@ const ProfileForm = ({
         });
       }
     }
-  }, [user, userType]);
+  }, [user, userType, parentForm.reset, organizerForm.reset]);
 
   const addChild = () => {
-    setChildren([...children, { id: children.length + 1 }]);
-    const currentChildren = parentForm.getValues().children || [];
-    parentForm.setValue("children", [
-      ...currentChildren,
-      {
-        firstName: "",
-        lastName: "",
-        dateOfBirth: "",
-      },
-    ]);
+    prepend({
+      firstName: "",
+      lastName: "",
+      dateOfBirth: "",
+    });
   };
 
   const removeChild = (index: number) => {
-    if (children.length > 1) {
-      // Get the child being removed
-      const currentChildren = [...parentForm.getValues().children];
-      const childToRemove = currentChildren[index];
+    const childToRemove = parentForm.getValues().children[index];
 
-      // If the child has an ID, add it to the deletedChildrenIds array
-      if (childToRemove && childToRemove.id) {
-        setDeletedChildrenIds((prev) => [...prev, childToRemove.id]);
-        console.log(`Adding child ID ${childToRemove.id} to deleted list`);
-      }
-
-      // Update the UI state
-      const newChildren = [...children];
-      newChildren.splice(index, 1);
-      setChildren(newChildren);
-
-      // Update the form state - create a new array to ensure React Hook Form detects the change
-      currentChildren.splice(index, 1);
-
-      // Manually update each child field to ensure form state is correct
-      parentForm.setValue("children", []);
-
-      // Re-add each child with correct data
-      setTimeout(() => {
-        parentForm.setValue("children", [...currentChildren]);
-
-        // Force re-render of each field
-        currentChildren.forEach((child, idx) => {
-          parentForm.setValue(
-            `children.${idx}.firstName`,
-            child.firstName || "",
-          );
-          parentForm.setValue(`children.${idx}.lastName`, child.lastName || "");
-          parentForm.setValue(
-            `children.${idx}.dateOfBirth`,
-            child.dateOfBirth || "",
-          );
-          if (child.id) {
-            parentForm.setValue(`children.${idx}.id`, child.id);
-          }
-        });
-      }, 0);
+    if (childToRemove?.id) {
+      setDeletedChildrenIds((prev) => [...prev, childToRemove.id!]);
     }
+    remove(index);
   };
 
   const handleParentSubmit = async (data: ParentProfileFormValues) => {
@@ -214,25 +172,14 @@ const ProfileForm = ({
 
     setIsSubmitting(true);
     try {
-      // Prepare children data for update
-      const childrenData = data.children.map((child, index) => {
-        // If we have existing children with IDs, preserve them
-        const existingChild = (user as any)?.children?.[index];
-        return {
-          id: existingChild?.id, // Will be undefined for new children
-          firstName: child.firstName,
-          lastName: child.lastName,
-          dateOfBirth: child.dateOfBirth,
-          parentId: user.id,
-        };
-      });
+      const childrenData = data.children.map((child) => ({
+        id: child.id,
+        firstName: child.firstName,
+        lastName: child.lastName,
+        dateOfBirth: child.dateOfBirth,
+        parentId: user.id,
+      }));
 
-      console.log(
-        "Children data prepared in handleParentSubmit:",
-        childrenData,
-      );
-
-      // Update parent profile with children data and deleted children IDs
       await updateParentProfile(
         user.id,
         {
@@ -242,23 +189,26 @@ const ProfileForm = ({
           phone: data.phone,
         },
         childrenData,
-        deletedChildrenIds.length > 0 ? deletedChildrenIds : undefined,
+        deletedChildrenIds.length > 0 ? deletedChildrenIds : undefined
       );
 
-      // Reset the deleted children IDs after successful update
       setDeletedChildrenIds([]);
 
-      // Force a refresh of the user data in the store
+      toast({
+        title: "Success",
+        description: "Your profile has been updated.",
+      });
+
       await checkUser({ forceProfileRefresh: true });
 
       if (onSubmit) onSubmit(data);
-
-      // Redirect to dashboard
     } catch (err) {
       console.error("Error updating profile:", err);
       toast({
         title: "Error",
-        description: "Failed to update profile. Please try again.",
+        description: `Failed to update profile. ${
+          err instanceof Error ? err.message : "Please try again."
+        }`,
         variant: "destructive",
       });
     } finally {
@@ -292,12 +242,9 @@ const ProfileForm = ({
         description: "Your profile has been updated",
       });
 
-      // Force a refresh of the user data in the store
       await checkUser({ forceProfileRefresh: true });
 
       if (onSubmit) onSubmit(data);
-
-      // Redirect to dashboard
     } catch (err) {
       console.error("Error updating profile:", err);
       toast({
@@ -323,7 +270,6 @@ const ProfileForm = ({
               onSubmit={parentForm.handleSubmit(handleParentSubmit)}
               className="space-y-8"
             >
-              {/* Profile Header */}
               <Card>
                 <CardHeader>
                   <CardTitle>Personal Information</CardTitle>
@@ -416,7 +362,6 @@ const ProfileForm = ({
                 </CardContent>
               </Card>
 
-              {/* Children Information */}
               <Card>
                 <CardHeader>
                   <div className="flex justify-between items-center">
@@ -433,22 +378,23 @@ const ProfileForm = ({
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                  {children.map((child, index) => (
-                    <div key={child.id} className="border rounded-lg p-4">
-                      <div className="flex justify-between items-center mb-4">
-                        <h3 className="font-medium">Child {index + 1}</h3>
-                        {children.length > 1 && (
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => removeChild(index)}
-                            className="text-destructive"
-                          >
-                            <Trash2 className="h-4 w-4 mr-2" />
-                            Remove
-                          </Button>
-                        )}
+                  {fields.map((field, index) => (
+                    <div
+                      key={field.fieldId}
+                      className="border rounded-lg p-4 relative"
+                    >
+                      <div className="flex justify-between items-start mb-4">
+                        <h3 className="font-medium pt-2">Child {index + 1}</h3>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removeChild(index)}
+                          className="text-destructive absolute top-2 right-2"
+                          aria-label={`Remove Child ${index + 1}`}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
                       </div>
 
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -496,14 +442,20 @@ const ProfileForm = ({
                           )}
                         />
                       </div>
+                      {/* <input type="hidden" {...parentForm.register(`children.${index}.id`)} /> */}
                     </div>
                   ))}
+                  {fields.length === 0 && (
+                    <p className="text-sm text-muted-foreground text-center py-4">
+                      No children added yet. Click "Add Child" to add one.
+                    </p>
+                  )}
                 </CardContent>
               </Card>
 
               <div className="flex justify-end">
-                <Button type="submit" disabled={isSubmitting}>
-                  {isSubmitting ? (
+                <Button type="submit" disabled={isSubmitting || loading}>
+                  {isSubmitting || loading ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                       Saving...
@@ -521,7 +473,6 @@ const ProfileForm = ({
               onSubmit={organizerForm.handleSubmit(handleOrganizerSubmit)}
               className="space-y-8"
             >
-              {/* Organization Information */}
               <Card>
                 <CardHeader>
                   <CardTitle>Organization Information</CardTitle>
@@ -651,7 +602,7 @@ const ProfileForm = ({
                           />
                         </FormControl>
                         <FormDescription>
-                          This description will be visible to parents browsing
+                          This description will be visible to parents Browse
                           your events.
                         </FormDescription>
                         <FormMessage />
@@ -662,8 +613,8 @@ const ProfileForm = ({
               </Card>
 
               <div className="flex justify-end">
-                <Button type="submit" disabled={isSubmitting}>
-                  {isSubmitting ? (
+                <Button type="submit" disabled={isSubmitting || loading}>
+                  {isSubmitting || loading ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                       Saving...

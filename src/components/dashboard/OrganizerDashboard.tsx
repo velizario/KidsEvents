@@ -104,7 +104,7 @@ const OrganizerDashboard = () => {
 
   // Filter events based on search query
   const filteredEvents = events.filter((event) =>
-    event.title?.toLowerCase().includes(searchQuery.toLowerCase()),
+    event.title?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   // Filter registrations based on search query
@@ -113,7 +113,7 @@ const OrganizerDashboard = () => {
       registration.childName
         .toLowerCase()
         .includes(searchQuery.toLowerCase()) ||
-      registration.eventTitle.toLowerCase().includes(searchQuery.toLowerCase()),
+      registration.eventTitle.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   return (
@@ -169,7 +169,13 @@ const OrganizerDashboard = () => {
             <CardContent>
               <div className="flex items-center">
                 <Users className="h-5 w-5 text-primary mr-2" />
-                <div className="text-2xl font-bold">{registrations.length}</div>
+                <div className="text-2xl font-bold">
+                  {/* Calculate the sum of registrations from all fetched events */}
+                  {events?.reduce(
+                    (sum, event) => sum + (event.registrations || 0),
+                    0
+                  ) || 0}
+                </div>
               </div>
             </CardContent>
           </Card>
