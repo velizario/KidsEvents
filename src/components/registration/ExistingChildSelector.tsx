@@ -67,11 +67,15 @@ const ExistingChildSelector = <T extends FieldValues>({
 
   return (
     <FormItem>
-      <div className="space-y-3 max-h-60 overflow-y-auto p-1">
+      <div className="space-y-3 p-1">
         {existingChildren.map((child) => (
           <Card
             key={child.id}
-            className={`border-2 ${field.value?.includes(child.id) ? "border-primary" : "border-border"}`}
+            className={`border-2 ${
+              field.value?.includes(child.id)
+                ? "border-primary"
+                : "border-border"
+            }`}
           >
             <CardContent className="p-4 flex items-center space-x-4">
               <FormItem className="flex items-center space-x-3 space-y-0">
@@ -84,7 +88,7 @@ const ExistingChildSelector = <T extends FieldValues>({
                         field.onChange([...currentValue, child.id]);
                       } else {
                         field.onChange(
-                          currentValue.filter((id) => id !== child.id),
+                          currentValue.filter((id) => id !== child.id)
                         );
                       }
                     }}
