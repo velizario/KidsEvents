@@ -32,7 +32,8 @@ const organizerSchema = z.object({
   organizationName: z
     .string()
     .min(2, { message: "Organization name is required" }),
-  contactName: z.string().min(2, { message: "Contact name is required" }),
+  firstName: z.string().min(2, { message: "First name is required" }),
+  lastName: z.string().min(2, { message: "Last name is required" }),
   email: z.string().email({ message: "Please enter a valid email address" }),
   password: z
     .string()
@@ -75,7 +76,8 @@ const RegisterForm = ({
     resolver: zodResolver(organizerSchema),
     defaultValues: {
       organizationName: "",
-      contactName: "",
+      firstName: "",
+      lastName: "",
       email: "",
       password: "",
       phone: "",
@@ -124,7 +126,8 @@ const RegisterForm = ({
     try {
       await signUp(data.email, data.password, {
         organizationName: data.organizationName,
-        contactName: data.contactName,
+        firstName: data.firstName,
+        lastName: data.lastName,
         description: data.description,
         website: data.website,
         phone: data.phone,
@@ -343,26 +346,49 @@ const RegisterForm = ({
               )}
             />
 
-            <FormField
-              control={organizerForm.control}
-              name="contactName"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Contact Person</FormLabel>
-                  <div className="relative">
-                    <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <FormControl>
-                      <Input
-                        placeholder="John Smith"
-                        className="pl-10"
-                        {...field}
-                      />
-                    </FormControl>
-                  </div>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={organizerForm.control}
+                name="firstName"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>First Name</FormLabel>
+                    <div className="relative">
+                      <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <FormControl>
+                        <Input
+                          placeholder="John"
+                          className="pl-10"
+                          {...field}
+                        />
+                      </FormControl>
+                    </div>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={organizerForm.control}
+                name="lastName"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Last Name</FormLabel>
+                    <div className="relative">
+                      <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <FormControl>
+                        <Input
+                          placeholder="Smith"
+                          className="pl-10"
+                          {...field}
+                        />
+                      </FormControl>
+                    </div>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
 
             <div className="grid grid-cols-2 gap-4">
               <FormField

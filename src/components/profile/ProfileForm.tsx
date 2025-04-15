@@ -45,8 +45,8 @@ const organizerProfileSchema = z.object({
   organizationName: z
     .string()
     .min(2, { message: "Organization name is required" }),
-  contactName: z.string().min(2, { message: "Contact name is required" }),
-  email: z.string().email({ message: "Please enter a valid email address" }),
+  firstName: z.string().min(2, { message: "First name is required" }),
+  lastName: z.string().min(2, { message: "Last name is required" }),
   phone: z.string().min(10, { message: "Please enter a valid phone number" }),
   description: z.string().min(10, { message: "Description is required" }),
   website: z
@@ -63,7 +63,7 @@ interface ProfileFormProps {
   userType: "parent" | "organizer";
   initialData?: ParentProfileFormValues | OrganizerProfileFormValues;
   onSubmit?: (
-    data: ParentProfileFormValues | OrganizerProfileFormValues
+    data: ParentProfileFormValues | OrganizerProfileFormValues,
   ) => void;
 }
 
@@ -102,8 +102,8 @@ const ProfileForm = ({
     resolver: zodResolver(organizerProfileSchema),
     defaultValues: {
       organizationName: "",
-      contactName: "",
-      email: "",
+      firstName: "",
+      lastName: "",
       phone: "",
       description: "",
       website: "",
@@ -119,7 +119,7 @@ const ProfileForm = ({
           firstName: parentUser.firstName || "",
           lastName: parentUser.lastName || "",
           email: parentUser.email || "",
-          phone: parentUser.phone || "",
+          phone: parentUser.phone || "", // Phone is now from auth.users table
           // Existing children are loaded in their current order. New children will be prepended.
           children:
             parentUser.children?.map((child) => ({
@@ -133,9 +133,9 @@ const ProfileForm = ({
       } else {
         organizerForm.reset({
           organizationName: (user as any).organizationName || "",
-          contactName: (user as any).contactName || "",
-          email: user.email || "",
-          phone: user.phone || "",
+          firstName: user.firstName || "",
+          lastName: user.lastName || "",
+          phone: user.phone || "", // Phone is now from auth.users table
           description: (user as any).description || "",
           website: (user as any).website || "",
         });
@@ -186,10 +186,10 @@ const ProfileForm = ({
           firstName: data.firstName,
           lastName: data.lastName,
           email: data.email,
-          phone: data.phone,
+          phone: data.phone, // Phone will be updated in auth.users table
         },
         childrenData,
-        deletedChildrenIds.length > 0 ? deletedChildrenIds : undefined
+        deletedChildrenIds.length > 0 ? deletedChildrenIds : undefined,
       );
 
       setDeletedChildrenIds([]);
@@ -230,9 +230,9 @@ const ProfileForm = ({
     try {
       await updateOrganizerProfile(user.id, {
         organizationName: data.organizationName,
-        contactName: data.contactName,
-        email: data.email,
-        phone: data.phone,
+        firstName: data.firstName,
+        lastName: data.lastName,
+        phone: data.phone, // Phone will be updated in auth.users table
         description: data.description,
         website: data.website,
       });
@@ -511,18 +511,34 @@ const ProfileForm = ({
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <FormField
                           control={organizerForm.control}
-                          name="contactName"
+                          name="firstName"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel>Contact Person</FormLabel>
+                              <FormLabel>First Name</FormLabel>
                               <FormControl>
-                                <Input placeholder="John Smith" {...field} />
+                                <Input placeholder="John" {...field} />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
                           )}
                         />
 
+                        <FormField
+                          control={organizerForm.control}
+                          name="lastName"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Last Name</FormLabel>
+                              <FormControl>
+                                <Input placeholder="Smith" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <FormField
                           control={organizerForm.control}
                           name="website"
@@ -535,29 +551,6 @@ const ProfileForm = ({
                                   {...field}
                                   value={field.value || ""}
                                 />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </div>
-
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <FormField
-                          control={organizerForm.control}
-                          name="email"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Email</FormLabel>
-                              <FormControl>
-                                <div className="relative">
-                                  <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                                  <Input
-                                    placeholder="info@example.com"
-                                    className="pl-10"
-                                    {...field}
-                                  />
-                                </div>
                               </FormControl>
                               <FormMessage />
                             </FormItem>

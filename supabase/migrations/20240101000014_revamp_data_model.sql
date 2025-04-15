@@ -2,7 +2,9 @@
 ALTER TABLE organizers
 DROP COLUMN IF EXISTS year_established,
 DROP COLUMN IF EXISTS rating,
-DROP COLUMN IF EXISTS review_count;
+DROP COLUMN IF EXISTS review_count,
+DROP COLUMN IF EXISTS email,
+DROP COLUMN IF EXISTS contact_name;
 
 -- Remove columns from events table
 ALTER TABLE events
@@ -14,6 +16,10 @@ DROP COLUMN IF EXISTS price;
 ALTER TABLE registrations
 DROP COLUMN IF EXISTS confirmation_code,
 DROP COLUMN IF EXISTS emergency_contact;
+
+-- Remove email from parents table
+ALTER TABLE parents
+DROP COLUMN IF EXISTS email;
 
 -- Add column to reviews table
 ALTER TABLE reviews

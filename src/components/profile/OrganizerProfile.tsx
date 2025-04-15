@@ -116,6 +116,9 @@ const OrganizerProfile = () => {
               <h1 className="text-2xl md:text-3xl font-bold">
                 {organizer.organizationName}
               </h1>
+              <p className="text-sm text-muted-foreground">
+                {organizer.firstName} {organizer.lastName}
+              </p>
               <div className="flex items-center gap-2 mt-2">
                 <div className="flex items-center">
                   <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />
@@ -381,7 +384,7 @@ const OrganizerProfile = () => {
                           href={`tel:${organizer.phone}`}
                           className="font-medium"
                         >
-                          {organizer.phone}
+                          {organizer.phone || "Not provided"}
                         </a>
                       </div>
                     </div>

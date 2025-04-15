@@ -1,6 +1,13 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { Calendar, Search, ChevronRight, Loader2, User } from "lucide-react";
+import {
+  Calendar,
+  Search,
+  ChevronRight,
+  Loader2,
+  User,
+  Phone,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -17,8 +24,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 const ParentDashboard = () => {
   const [searchQuery, setSearchQuery] = useState("");
-  const { loading, error, children, registrations, parentName } =
-    useParentData();
+  const { loading, error, children, registrations, parent } = useParentData();
 
   // Transform registrations data to match the UI format
   const formattedRegistrations = registrations.map((registration) => {
@@ -77,8 +83,15 @@ const ParentDashboard = () => {
             <div>
               <h1 className="text-2xl font-bold">Parent Dashboard</h1>
               <p className="text-muted-foreground">
-                Manage your children's activities
+                {parent?.firstName} {parent?.lastName} • Manage your children's
+                activities
               </p>
+              {parent?.phone && (
+                <p className="text-muted-foreground flex items-center mt-1">
+                  <Phone className="h-3 w-3 mr-1" />{" "}
+                  {parent.phone || "Not provided"}
+                </p>
+              )}
             </div>
             <div className="flex gap-2">
               <Button variant="outline" asChild>
@@ -116,7 +129,9 @@ const ParentDashboard = () => {
             {/* Welcome Card */}
             <Card className="mb-8">
               <CardHeader>
-                <CardTitle>Welcome back, {parentName || "Parent"}!</CardTitle>
+                <CardTitle>
+                  Welcome back, {parent?.firstName || "Parent"}!
+                </CardTitle>
                 <CardDescription>
                   Here's what's happening with your children's activities
                 </CardDescription>

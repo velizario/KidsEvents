@@ -9,6 +9,7 @@ import {
   Search,
   Loader,
   User,
+  Phone,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,7 +24,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { useEvents } from "@/hooks/useEvents";
 import { useAuthStore } from "@/store/authStore";
-import { Event } from "@/types/models";
+import { Event, Organizer } from "@/types/models";
 
 // Mock data for registrations
 const registrations = [
@@ -80,6 +81,7 @@ const OrganizerDashboard = () => {
     fetchEventsByOrganizer,
   } = useEvents();
   const { user } = useAuthStore();
+  const organizerName = user ? `${user.firstName} ${user.lastName}` : "";
 
   useEffect(() => {
     const loadOrganizerEvents = async () => {
@@ -104,7 +106,7 @@ const OrganizerDashboard = () => {
 
   // Filter events based on search query
   const filteredEvents = events.filter((event) =>
-    event.title?.toLowerCase().includes(searchQuery.toLowerCase())
+    event.title?.toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
   // Filter registrations based on search query
@@ -113,7 +115,7 @@ const OrganizerDashboard = () => {
       registration.childName
         .toLowerCase()
         .includes(searchQuery.toLowerCase()) ||
-      registration.eventTitle.toLowerCase().includes(searchQuery.toLowerCase())
+      registration.eventTitle.toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
   return (
@@ -125,8 +127,14 @@ const OrganizerDashboard = () => {
             <div>
               <h1 className="text-2xl font-bold">Organizer Dashboard</h1>
               <p className="text-muted-foreground">
-                Manage your events and registrations
+                {user?.organizationName || ""} • {organizerName}
               </p>
+              {user?.phone && (
+                <p className="text-muted-foreground flex items-center mt-1">
+                  <Phone className="h-3 w-3 mr-1" />{" "}
+                  {user.phone || "Not provided"}
+                </p>
+              )}
             </div>
             <div className="flex gap-2">
               <Button variant="outline" asChild>
@@ -173,7 +181,7 @@ const OrganizerDashboard = () => {
                   {/* Calculate the sum of registrations from all fetched events */}
                   {events?.reduce(
                     (sum, event) => sum + (event.registrations || 0),
-                    0
+                    0,
                   ) || 0}
                 </div>
               </div>

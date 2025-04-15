@@ -3,7 +3,7 @@
 // Base User model (matches auth.users table)
 export interface User {
   id: string;
-  email: string;
+  email: string; // Email is stored in auth.users table, not in organizers or parents tables
   firstName: string;
   lastName: string;
   phone: string;
@@ -22,7 +22,6 @@ export interface ParentData {
 export interface OrganizerData {
   id: string; // References User.id
   organizationName: string;
-  contactName: string;
   description: string;
   website?: string;
 }

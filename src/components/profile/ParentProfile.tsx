@@ -223,7 +223,7 @@ const ParentProfile = () => {
                       <div>
                         <p className="text-sm text-muted-foreground">Phone</p>
                         <a href={`tel:${parent.phone}`} className="font-medium">
-                          {parent.phone}
+                          {parent.phone || "Not provided"}
                         </a>
                       </div>
                     </div>

@@ -36,9 +36,6 @@ export const authAPI = {
       await supabase.from("parents").insert(
         convertObjectToSnakeCase({
           id: data.user?.id,
-          email,
-          firstName: userData.firstName,
-          lastName: userData.lastName,
           phone: userData.phone,
         }),
       );
@@ -46,9 +43,7 @@ export const authAPI = {
       await supabase.from("organizers").insert(
         convertObjectToSnakeCase({
           id: data.user?.id,
-          email,
           organizationName: (userData as Partial<Organizer>).organizationName,
-          contactName: (userData as Partial<Organizer>).contactName,
           description: (userData as Partial<Organizer>).description,
           phone: userData.phone,
           website: (userData as Partial<Organizer>).website,
@@ -107,6 +102,14 @@ export const authAPI = {
         );
       }
 
+      // Get the auth user data to retrieve phone number
+      const { data: authUser, error: authUserError } =
+        await supabase.auth.admin.getUserById(userId);
+
+      if (authUserError) {
+        console.error("Error fetching auth user:", authUserError);
+      }
+
       // Get the full user data
       let userData;
 
@@ -132,10 +135,14 @@ export const authAPI = {
           // Continue with parent data even if children fetch fails
         }
 
-        // Add children to parent data
+        // Add children and phone to parent data
         userData = {
           ...data,
           children: childrenData || [],
+          phone: authUser?.user?.phone || "",
+          email: authUser?.user?.email || "",
+          firstName: authUser?.user?.user_metadata?.firstName || "",
+          lastName: authUser?.user?.user_metadata?.lastName || "",
         };
 
         console.log("Fetched parent profile with children:", {
@@ -152,7 +159,15 @@ export const authAPI = {
           .single();
 
         if (error) throw error;
-        userData = data;
+
+        // Add phone from auth user data
+        userData = {
+          ...data,
+          phone: authUser?.user?.phone || "",
+          email: authUser?.user?.email || "",
+          firstName: authUser?.user?.user_metadata?.firstName || "",
+          lastName: authUser?.user?.user_metadata?.lastName || "",
+        };
       }
 
       return convertObjectToCamelCase(userData);
@@ -178,10 +193,25 @@ export const authAPI = {
     const table = userType === "parent" ? "parents" : "organizers";
 
     try {
-      // 1. Update the user profile
+      // Extract phone from userData to update in auth.users
+      const { phone, ...profileData } = userData as any;
+
+      // Update phone in auth.users if provided
+      if (phone) {
+        const { error: authUpdateError } = await supabase.auth.updateUser({
+          phone: phone,
+        });
+
+        if (authUpdateError) {
+          console.error("Error updating phone in auth user:", authUpdateError);
+          throw authUpdateError;
+        }
+      }
+
+      // 1. Update the user profile (without phone as it's now in auth.users)
       const { data, error } = await supabase
         .from(table)
-        .update(convertObjectToSnakeCase(userData))
+        .update(convertObjectToSnakeCase(profileData))
         .eq("id", userId);
 
       if (error) throw error;
@@ -428,7 +458,7 @@ export const eventAPI = {
       .select(
         `
         *,
-        organizers(id, organization_name, contact_name, email, phone)
+        organizers(id, organization_name)
       `,
       )
       .eq("status", "active");
@@ -513,7 +543,7 @@ export const eventAPI = {
           try {
             const { data: fetchedParent, error } = await supabase
               .from("parents")
-              .select("id, first_name, last_name, email, phone")
+              .select("id, first_name, last_name, phone")
               .eq("id", registration.parent_id)
               .maybeSingle();
 
@@ -627,9 +657,6 @@ export const registrationAPI = {
           // Parent doesn't exist, create it
           const { error: parentError } = await supabase.from("parents").insert({
             id: registrationData.parentId,
-            email: "demo@example.com",
-            first_name: "Demo",
-            last_name: "Parent",
             phone: "555-123-4567",
           });
 
@@ -718,7 +745,7 @@ export const registrationAPI = {
       try {
         const { data: fetchedParent, error } = await supabase
           .from("parents")
-          .select("id, first_name, last_name, email, phone")
+          .select("id, first_name, last_name, phone")
           .eq("id", data.parent_id)
           .maybeSingle();
 
