@@ -13,36 +13,6 @@ import {
   Review,
 } from "../types/models";
 
-// Check if using placeholder URL
-const isPlaceholderUrl =
-  supabase.supabaseUrl === "https://placeholder-url.supabase.co";
-
-// Mock data for development when Supabase is not connected
-const mockUsers = {
-  parent: {
-    id: "mock-parent-id",
-    email: "parent@example.com",
-    firstName: "Sarah",
-    lastName: "Johnson",
-    phone: "(555) 123-4567",
-    userType: "parent",
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  organizer: {
-    id: "mock-organizer-id",
-    email: "organizer@example.com",
-    organizationName: "Community Arts Center",
-    contactName: "John Smith",
-    description:
-      "A non-profit organization dedicated to providing arts education.",
-    phone: "(555) 987-6543",
-    userType: "organizer",
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-};
-
 // Authentication APIs
 export const authAPI = {
   // Register a new user
@@ -51,11 +21,6 @@ export const authAPI = {
     password: string,
     userData: Partial<User>
   ) => {
-    if (isPlaceholderUrl) {
-      console.log("Mock register:", { email, userData });
-      return { user: { id: "mock-user-id", email } };
-    }
-
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -96,11 +61,6 @@ export const authAPI = {
 
   // Login user
   login: async (email: string, password: string) => {
-    if (isPlaceholderUrl) {
-      console.log("Mock login:", { email });
-      return { user: { id: "mock-user-id", email } };
-    }
-
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
@@ -112,22 +72,12 @@ export const authAPI = {
 
   // Logout user
   logout: async () => {
-    if (isPlaceholderUrl) {
-      console.log("Mock logout");
-      return;
-    }
-
     const { error } = await supabase.auth.signOut();
     if (error) throw error;
   },
 
   // Get current user
   getCurrentUser: async () => {
-    if (isPlaceholderUrl) {
-      console.log("Mock getCurrentUser");
-      return { id: "mock-user-id", user_metadata: { userType: "parent" } };
-    }
-
     const { data, error } = await supabase.auth.getUser();
     if (error) throw error;
     return data.user;
@@ -135,11 +85,6 @@ export const authAPI = {
 
   // Get user profile
   getUserProfile: async (userId: string, userType: "parent" | "organizer") => {
-    if (isPlaceholderUrl) {
-      console.log("Mock getUserProfile:", { userId, userType });
-      return mockUsers[userType];
-    }
-
     const table = userType === "parent" ? "parents" : "organizers";
     try {
       // First check if the user exists
@@ -213,11 +158,6 @@ export const authAPI = {
       return convertObjectToCamelCase(userData);
     } catch (error) {
       console.error(`Error fetching ${userType} profile:`, error);
-      // Return mock data when in development to prevent app crashes
-      if (process.env.NODE_ENV === "development") {
-        console.warn(`Returning mock ${userType} data for development`);
-        return mockUsers[userType];
-      }
       throw error;
     }
   },
@@ -233,17 +173,6 @@ export const authAPI = {
     // Log the children data being received
     console.log("Children data received in updateUserProfile:", childrenData);
     console.log("Deleted children IDs:", deletedChildrenIds);
-
-    if (isPlaceholderUrl) {
-      console.log("Mock updateUserProfile:", {
-        userId,
-        userType,
-        userData,
-        childrenData,
-        deletedChildrenIds,
-      });
-      return { ...mockUsers[userType], ...userData };
-    }
 
     // Start a Supabase transaction
     const table = userType === "parent" ? "parents" : "organizers";
@@ -364,15 +293,6 @@ export const parentAPI = {
     parentId: string,
     childData: Omit<Child, "id" | "parentId">
   ) => {
-    if (isPlaceholderUrl) {
-      console.log("Mock addChild:", { parentId, childData });
-      return {
-        id: "mock-child-id",
-        ...childData,
-        parentId,
-      };
-    }
-
     // Generate a UUID for the new child
     const childId = crypto.randomUUID();
 
@@ -393,14 +313,6 @@ export const parentAPI = {
 
   // Update child information
   updateChild: async (childId: string, childData: Partial<Child>) => {
-    if (isPlaceholderUrl) {
-      console.log("Mock updateChild:", { childId, childData });
-      return {
-        id: childId,
-        ...childData,
-      };
-    }
-
     const { data, error } = await supabase
       .from("children")
       .update(convertObjectToSnakeCase(childData))
@@ -413,11 +325,6 @@ export const parentAPI = {
 
   // Delete a child
   deleteChild: async (childId: string) => {
-    if (isPlaceholderUrl) {
-      console.log("Mock deleteChild:", { childId });
-      return true;
-    }
-
     const { error } = await supabase
       .from("children")
       .delete()
@@ -429,28 +336,6 @@ export const parentAPI = {
 
   // Get all children for a parent
   getChildren: async (parentId: string) => {
-    if (isPlaceholderUrl) {
-      console.log("Mock getChildren:", { parentId });
-      return [
-        {
-          id: "mock-child-1",
-          firstName: "Emma",
-          lastName: "Johnson",
-          dateOfBirth: "2015-05-12",
-          age: 8,
-          parentId,
-        },
-        {
-          id: "mock-child-2",
-          firstName: "Noah",
-          lastName: "Johnson",
-          dateOfBirth: "2017-08-23",
-          age: 6,
-          parentId,
-        },
-      ];
-    }
-
     const { data, error } = await supabase
       .from("children")
       .select("*")
@@ -462,18 +347,6 @@ export const parentAPI = {
 
   // Get a specific child
   getChild: async (childId: string) => {
-    if (isPlaceholderUrl) {
-      console.log("Mock getChild:", { childId });
-      return {
-        id: childId,
-        firstName: "Emma",
-        lastName: "Johnson",
-        dateOfBirth: "2015-05-12",
-        age: 8,
-        parentId: "mock-parent-id",
-      };
-    }
-
     const { data, error } = await supabase
       .from("children")
       .select("*")
@@ -486,11 +359,6 @@ export const parentAPI = {
 
   // Get parent's registrations
   getRegistrations: async (parentId: string) => {
-    if (isPlaceholderUrl) {
-      console.log("Mock getRegistrations:", { parentId });
-      return [];
-    }
-
     const { data, error } = await supabase
       .from("registrations")
       .select(
@@ -517,18 +385,6 @@ export const eventAPI = {
       "id" | "organizerId" | "registrations" | "createdAt" | "updatedAt"
     >
   ) => {
-    if (isPlaceholderUrl) {
-      console.log("Mock createEvent:", { organizerId, eventData });
-      return {
-        id: "mock-event-id",
-        ...eventData,
-        organizerId,
-        registrations: 0,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
-    }
-
     const { data, error } = await supabase
       .from("events")
       .insert(
@@ -546,15 +402,6 @@ export const eventAPI = {
 
   // Update an event
   updateEvent: async (eventId: string, eventData: Partial<Event>) => {
-    if (isPlaceholderUrl) {
-      console.log("Mock updateEvent:", { eventId, eventData });
-      return {
-        id: eventId,
-        ...eventData,
-        updatedAt: new Date().toISOString(),
-      };
-    }
-
     const { data, error } = await supabase
       .from("events")
       .update(convertObjectToSnakeCase(eventData))
@@ -567,11 +414,6 @@ export const eventAPI = {
 
   // Delete an event
   deleteEvent: async (eventId: string) => {
-    if (isPlaceholderUrl) {
-      console.log("Mock deleteEvent:", { eventId });
-      return true;
-    }
-
     const { error } = await supabase.from("events").delete().eq("id", eventId);
 
     if (error) throw error;
@@ -586,11 +428,6 @@ export const eventAPI = {
     location?: string;
     search?: string;
   }) => {
-    if (isPlaceholderUrl) {
-      console.log("Mock getAllEvents:", { filters });
-      return [];
-    }
-
     let query = supabase.from("events").select(`
         *,
         organizers (id, organization_name, contact_name, email, phone)
@@ -625,11 +462,6 @@ export const eventAPI = {
 
   // Get events by organizer
   getEventsByOrganizer: async (organizerId: string) => {
-    if (isPlaceholderUrl) {
-      console.log("Mock getEventsByOrganizer:", { organizerId });
-      return [];
-    }
-
     const { data, error } = await supabase
       .from("events")
       .select("*")
@@ -641,11 +473,6 @@ export const eventAPI = {
 
   // Get a specific event
   getEvent: async (eventId: string) => {
-    if (isPlaceholderUrl) {
-      console.log("Mock getEvent:", { eventId });
-      return null;
-    }
-
     try {
       const { data, error } = await supabase
         .from("events")
@@ -668,11 +495,6 @@ export const eventAPI = {
 
   // Get event participants
   getEventParticipants: async (eventId: string) => {
-    if (isPlaceholderUrl) {
-      console.log("Mock getEventParticipants:", { eventId });
-      return [];
-    }
-
     const { data, error } = await supabase
       .from("registrations")
       .select(
@@ -738,23 +560,6 @@ export const registrationAPI = {
       paymentMethod?: string;
     }
   ) => {
-    if (isPlaceholderUrl) {
-      console.log("Mock registerForEvent:", { eventId, registrationData });
-      return {
-        id: "mock-registration-id",
-        eventId,
-        childId: registrationData.childId,
-        parentId: registrationData.parentId,
-        status: "confirmed",
-        paymentStatus: "paid",
-        confirmationCode: "MOCK-1234",
-        registrationDate: new Date().toISOString(),
-        emergencyContact: registrationData.emergencyContact,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
-    }
-
     try {
       // First get the event to check capacity
       const { data: event, error: eventError } = await supabase
@@ -880,16 +685,6 @@ export const registrationAPI = {
 
   // Cancel a registration
   cancelRegistration: async (registrationId: string) => {
-    if (isPlaceholderUrl) {
-      console.log("Mock cancelRegistration:", { registrationId });
-      return {
-        id: registrationId,
-        status: "cancelled",
-        paymentStatus: "refunded",
-        updatedAt: new Date().toISOString(),
-      };
-    }
-
     // Get the registration to get the event ID
     const { data: registration } = await supabase
       .from("registrations")
@@ -930,11 +725,6 @@ export const registrationAPI = {
 
   // Get a specific registration
   getRegistration: async (registrationId: string) => {
-    if (isPlaceholderUrl) {
-      console.log("Mock getRegistration:", { registrationId });
-      return null;
-    }
-
     const { data, error } = await supabase
       .from("registrations")
       .select(
@@ -984,15 +774,6 @@ export const registrationAPI = {
     registrationId: string,
     status: "pending" | "confirmed" | "cancelled"
   ) => {
-    if (isPlaceholderUrl) {
-      console.log("Mock updateRegistrationStatus:", { registrationId, status });
-      return {
-        id: registrationId,
-        status,
-        updatedAt: new Date().toISOString(),
-      };
-    }
-
     const { data, error } = await supabase
       .from("registrations")
       .update({ status })
@@ -1008,18 +789,6 @@ export const registrationAPI = {
     registrationId: string,
     paymentStatus: "pending" | "paid" | "refunded"
   ) => {
-    if (isPlaceholderUrl) {
-      console.log("Mock updatePaymentStatus:", {
-        registrationId,
-        paymentStatus,
-      });
-      return {
-        id: registrationId,
-        paymentStatus,
-        updatedAt: new Date().toISOString(),
-      };
-    }
-
     const { data, error } = await supabase
       .from("registrations")
       .update({ payment_status: paymentStatus })
@@ -1042,20 +811,6 @@ export const reviewAPI = {
       comment: string;
     }
   ) => {
-    if (isPlaceholderUrl) {
-      console.log("Mock createReview:", { eventId, parentId, reviewData });
-      return {
-        id: "mock-review-id",
-        eventId,
-        parentId,
-        rating: reviewData.rating,
-        comment: reviewData.comment,
-        date: new Date().toISOString(),
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
-    }
-
     const { data, error } = await supabase
       .from("reviews")
       .insert(
@@ -1079,11 +834,6 @@ export const reviewAPI = {
 
   // Get reviews for an event
   getEventReviews: async (eventId: string) => {
-    if (isPlaceholderUrl) {
-      console.log("Mock getEventReviews:", { eventId });
-      return [];
-    }
-
     const { data, error } = await supabase
       .from("reviews")
       .select(
@@ -1100,11 +850,6 @@ export const reviewAPI = {
 
   // Get reviews for an organizer
   getOrganizerReviews: async (organizerId: string) => {
-    if (isPlaceholderUrl) {
-      console.log("Mock getOrganizerReviews:", { organizerId });
-      return [];
-    }
-
     const { data, error } = await supabase
       .from("reviews")
       .select(
@@ -1123,11 +868,6 @@ export const reviewAPI = {
 
 // Helper function to update organizer rating
 async function updateOrganizerRating(eventId: string) {
-  if (isPlaceholderUrl) {
-    console.log("Mock updateOrganizerRating:", { eventId });
-    return;
-  }
-
   // Get the event to get the organizer ID
   const { data: event } = await supabase
     .from("events")
