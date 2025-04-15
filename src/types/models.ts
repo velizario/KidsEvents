@@ -25,9 +25,6 @@ export interface OrganizerData {
   contactName: string;
   description: string;
   website?: string;
-  yearEstablished?: number;
-  rating?: number;
-  reviewCount?: number;
 }
 
 // Combined types for application use
@@ -56,11 +53,8 @@ export interface Event {
   date: string;
   time: string;
   location: string;
-  ageGroup: string;
   category: string;
   capacity: number;
-  registrations: number;
-  price: string;
   isPaid: boolean;
   status: "draft" | "active" | "cancelled" | "completed";
   imageUrl: string;
@@ -75,12 +69,7 @@ export interface Registration {
   childId: string;
   parentId: string;
   status: "pending" | "confirmed" | "cancelled";
-  confirmationCode: string;
   registrationDate: string;
-  emergencyContact: {
-    name: string;
-    phone: string;
-  };
   createdAt: string;
   updatedAt: string;
 }
@@ -89,6 +78,7 @@ export interface Review {
   id: string;
   eventId: string;
   parentId: string;
+  organizerId: string;
   rating: number;
   comment: string;
   date: string;

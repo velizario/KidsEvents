@@ -380,10 +380,7 @@ export const eventAPI = {
   // Create a new event
   createEvent: async (
     organizerId: string,
-    eventData: Omit<
-      Event,
-      "id" | "organizerId" | "registrations" | "createdAt" | "updatedAt"
-    >,
+    eventData: Omit<Event, "id" | "organizerId" | "createdAt" | "updatedAt">,
   ) => {
     const { data, error } = await supabase
       .from("events")
@@ -391,7 +388,6 @@ export const eventAPI = {
         convertObjectToSnakeCase({
           ...eventData,
           organizerId,
-          registrations: 0,
         }),
       )
       .select();
@@ -423,24 +419,24 @@ export const eventAPI = {
   // Get all events
   getAllEvents: async (filters?: {
     category?: string;
-    ageGroup?: string;
     date?: string;
     location?: string;
     search?: string;
   }) => {
-    let query = supabase.from("events").select(`
+    let query = supabase
+      .from("events")
+      .select(
+        `
         *,
-        organizers!organizer_id(id, organization_name, contact_name, email, phone)
-      `);
+        organizers(id, organization_name, contact_name, email, phone)
+      `,
+      )
+      .eq("status", "active");
 
     // Apply filters if provided
     if (filters) {
       if (filters.category && filters.category !== "All Events") {
         query = query.eq("category", filters.category);
-      }
-
-      if (filters.ageGroup && filters.ageGroup !== "All Ages") {
-        query = query.ilike("age_group", `%${filters.ageGroup}%`);
       }
 
       if (filters.location) {
@@ -479,7 +475,7 @@ export const eventAPI = {
         .select(
           `
           *,
-          organizers!organizer_id(*)
+          organizers(*)
         `,
         )
         .eq("id", eventId)
@@ -552,10 +548,6 @@ export const registrationAPI = {
     registrationData: {
       childId: string;
       parentId: string;
-      emergencyContact: {
-        name: string;
-        phone: string;
-      };
     },
   ) => {
     try {
@@ -568,16 +560,20 @@ export const registrationAPI = {
 
       if (eventError) throw eventError;
 
-      if (event.registrations >= event.capacity) {
-        throw new Error("This event has reached its capacity");
-      }
+      if (event.capacity > 0) {
+        // Check if we've reached capacity by counting existing registrations
+        const { count, error: countError } = await supabase
+          .from("registrations")
+          .select("*", { count: "exact", head: true })
+          .eq("event_id", eventId)
+          .eq("status", "confirmed");
 
-      // Generate confirmation code
-      const confirmationCode = `${event.category
-        .substring(0, 3)
-        .toUpperCase()}-${new Date().getFullYear()}-${Math.floor(
-        1000 + Math.random() * 9000,
-      )}`;
+        if (countError) throw countError;
+
+        if (count && count >= event.capacity) {
+          throw new Error("This event has reached its capacity");
+        }
+      }
 
       // For development/demo purposes, we'll create a child and parent record first
       // In a real app, these would already exist and be associated with the logged-in user
@@ -659,20 +655,12 @@ export const registrationAPI = {
             childId: registrationData.childId,
             parentId: registrationData.parentId,
             status: "confirmed",
-            confirmationCode,
             registrationDate: new Date().toISOString(),
-            emergencyContact: registrationData.emergencyContact,
           }),
         )
         .select();
 
       if (error) throw error;
-
-      // Update event registration count
-      await supabase
-        .from("events")
-        .update({ registrations: event.registrations + 1 })
-        .eq("id", eventId);
 
       return convertObjectToCamelCase(data[0]);
     } catch (error) {
@@ -702,19 +690,6 @@ export const registrationAPI = {
       .select();
 
     if (error) throw error;
-
-    // Update event registration count
-    await supabase
-      .from("events")
-      .select("*")
-      .eq("id", registration.event_id)
-      .single()
-      .then(({ data: event }) => {
-        return supabase
-          .from("events")
-          .update({ registrations: Math.max(0, event.registrations - 1) })
-          .eq("id", registration.event_id);
-      });
 
     return convertObjectToCamelCase(data[0]);
   },
@@ -792,12 +767,22 @@ export const reviewAPI = {
       comment: string;
     },
   ) => {
+    // First get the event to get the organizer ID
+    const { data: event, error: eventError } = await supabase
+      .from("events")
+      .select("organizer_id")
+      .eq("id", eventId)
+      .single();
+
+    if (eventError) throw eventError;
+
     const { data, error } = await supabase
       .from("reviews")
       .insert(
         convertObjectToSnakeCase({
           eventId,
           parentId,
+          organizerId: event.organizer_id,
           rating: reviewData.rating,
           comment: reviewData.comment,
           date: new Date().toISOString(),
@@ -806,9 +791,6 @@ export const reviewAPI = {
       .select();
 
     if (error) throw error;
-
-    // Update organizer rating
-    await updateOrganizerRating(eventId);
 
     return convertObjectToCamelCase(data[0]);
   },
@@ -836,47 +818,13 @@ export const reviewAPI = {
       .select(
         `
         *,
-        events (id, title, organizer_id),
+        events (id, title),
         parents (first_name, last_name)
       `,
       )
-      .eq("events.organizer_id", organizerId);
+      .eq("organizer_id", organizerId);
 
     if (error) throw error;
     return convertObjectToCamelCase(data);
   },
 };
-
-// Helper function to update organizer rating
-async function updateOrganizerRating(eventId: string) {
-  // Get the event to get the organizer ID
-  const { data: event } = await supabase
-    .from("events")
-    .select("organizer_id")
-    .eq("id", eventId)
-    .single();
-
-  // Get all reviews for this organizer's events
-  const { data: reviews } = await supabase
-    .from("reviews")
-    .select(
-      `
-      rating,
-      events!inner (organizer_id)
-    `,
-    )
-    .eq("events.organizer_id", event.organizer_id);
-
-  // Calculate average rating
-  const totalRating = reviews.reduce((sum, review) => sum + review.rating, 0);
-  const averageRating = reviews.length > 0 ? totalRating / reviews.length : 0;
-
-  // Update organizer rating
-  await supabase
-    .from("organizers")
-    .update({
-      rating: parseFloat(averageRating.toFixed(1)),
-      review_count: reviews.length,
-    })
-    .eq("id", event.organizer_id);
-}
