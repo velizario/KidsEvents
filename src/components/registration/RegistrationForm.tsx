@@ -55,12 +55,13 @@ const RegistrationForm = ({
   const { eventId } = useParamsHook<{ eventId: string }>();
   const navigate = useNavigateHook();
 
-  // Fetch parent's existing children
+  // Fetch parent's existing children and profile data
   const {
     children: existingChildren,
     loading: childrenLoading,
     error: childrenError,
     parentId,
+    parentName,
   } = useParentData();
 
   const {
@@ -105,6 +106,15 @@ const RegistrationForm = ({
       setEvent(fetchedEvent);
     }
   }, [fetchedEvent, mockEvent]);
+
+  // Pre-populate emergency contact information from parent profile
+  useEffect(() => {
+    if (parentName) {
+      form.setValue("emergencyContact.name", parentName);
+      // If we had parent phone, we would set it here
+      // form.setValue('emergencyContact.phone', parentPhone);
+    }
+  }, [parentName, form]);
 
   const onSubmit = async (data: any) => {
     if (!eventId && !mockEvent) {
@@ -186,7 +196,6 @@ const RegistrationForm = ({
               childId,
               parentId: actualParentId,
               emergencyContact: data.emergencyContact,
-              paymentMethod: data.paymentMethod,
             },
           );
           console.log(
@@ -314,68 +323,17 @@ const RegistrationForm = ({
                           )}
                         />
                       </div>
-
-                      <div className="mt-4">
-                        <FormField
-                          control={form.control}
-                          name="emergencyContact.relationship"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Relationship to Child</FormLabel>
-                              <FormControl>
-                                <Input
-                                  placeholder="Grandparent, Aunt, Friend, etc."
-                                  {...field}
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </div>
                     </CardContent>
                   </Card>
                 </div>
 
-                {/* Payment Method */}
+                {/* Terms and Conditions */}
                 <div className="space-y-4">
-                  <h2 className="text-xl font-semibold">Payment Method</h2>
+                  <h2 className="text-xl font-semibold">
+                    Terms and Conditions
+                  </h2>
                   <Card>
                     <CardContent className="p-6">
-                      <FormField
-                        control={form.control}
-                        name="paymentMethod"
-                        render={({ field }) => (
-                          <FormItem className="space-y-3">
-                            <FormControl>
-                              <RadioGroup
-                                onValueChange={field.onChange}
-                                defaultValue={field.value}
-                                className="flex flex-col space-y-1"
-                              >
-                                <FormItem className="flex items-center space-x-3 space-y-0">
-                                  <FormControl>
-                                    <RadioGroupItem value="credit" />
-                                  </FormControl>
-                                  <FormLabel className="font-normal">
-                                    Credit Card
-                                  </FormLabel>
-                                </FormItem>
-                                <FormItem className="flex items-center space-x-3 space-y-0">
-                                  <FormControl>
-                                    <RadioGroupItem value="paypal" />
-                                  </FormControl>
-                                  <FormLabel className="font-normal">
-                                    PayPal
-                                  </FormLabel>
-                                </FormItem>
-                              </RadioGroup>
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
                       <div className="mt-4">
                         <FormField
                           control={form.control}
@@ -543,8 +501,8 @@ const RegistrationForm = ({
                           Children
                         </p>
                         <p className="font-medium">
-                          {(form.getValues().selectedExistingChildIds?.length ||
-                            0) + (form.getValues().children?.length || 0)}
+                          {form.getValues().selectedExistingChildIds?.length ||
+                            0}
                         </p>
                       </div>
                       <div className="flex justify-between items-center mt-2 text-lg font-bold">
@@ -552,9 +510,8 @@ const RegistrationForm = ({
                         <p>
                           $
                           {parseInt(event.price?.replace("$", "") || "0") *
-                            ((form.getValues().selectedExistingChildIds
-                              ?.length || 0) +
-                              (form.getValues().children?.length || 0))}
+                            (form.getValues().selectedExistingChildIds
+                              ?.length || 0)}
                         </p>
                       </div>
                     </div>

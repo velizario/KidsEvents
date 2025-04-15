@@ -63,13 +63,11 @@ export interface Registration {
   childId: string;
   parentId: string;
   status: "pending" | "confirmed" | "cancelled";
-  paymentStatus: "pending" | "paid" | "refunded";
   confirmationCode: string;
   registrationDate: string;
   emergencyContact: {
     name: string;
     phone: string;
-    relationship: string;
   };
   createdAt: string;
   updatedAt: string;

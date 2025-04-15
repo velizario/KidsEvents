@@ -19,7 +19,7 @@ export const authAPI = {
   register: async (
     email: string,
     password: string,
-    userData: Partial<User>
+    userData: Partial<User>,
   ) => {
     const { data, error } = await supabase.auth.signUp({
       email,
@@ -40,7 +40,7 @@ export const authAPI = {
           firstName: userData.firstName,
           lastName: userData.lastName,
           phone: userData.phone,
-        })
+        }),
       );
     } else {
       await supabase.from("organizers").insert(
@@ -52,7 +52,7 @@ export const authAPI = {
           description: (userData as Partial<Organizer>).description,
           phone: userData.phone,
           website: (userData as Partial<Organizer>).website,
-        })
+        }),
       );
     }
 
@@ -103,7 +103,7 @@ export const authAPI = {
       // If multiple users found (shouldn't happen), log warning and use first one
       if (checkData.length > 1) {
         console.warn(
-          `Multiple ${userType} profiles found with id: ${userId}. Using first one.`
+          `Multiple ${userType} profiles found with id: ${userId}. Using first one.`,
         );
       }
 
@@ -168,7 +168,7 @@ export const authAPI = {
     userType: "parent" | "organizer",
     userData: Partial<Parent | Organizer>,
     childrenData?: Partial<Child>[],
-    deletedChildrenIds?: string[]
+    deletedChildrenIds?: string[],
   ) => {
     // Log the children data being received
     console.log("Children data received in updateUserProfile:", childrenData);
@@ -204,7 +204,7 @@ export const authAPI = {
           }
 
           console.log(
-            `Successfully deleted ${deletedChildrenIds.length} children`
+            `Successfully deleted ${deletedChildrenIds.length} children`,
           );
         }
 
@@ -219,7 +219,7 @@ export const authAPI = {
           // Process updates in bulk if there are any
           if (childrenToUpdate.length > 0) {
             console.log(
-              `Updating ${childrenToUpdate.length} existing children`
+              `Updating ${childrenToUpdate.length} existing children`,
             );
 
             // Use upsert with onConflict to update multiple children in one request
@@ -227,7 +227,7 @@ export const authAPI = {
               convertObjectToSnakeCase({
                 ...child,
                 parentId: userId,
-              })
+              }),
             );
 
             console.log("Children data to update:", childrenDataToUpdate);
@@ -250,7 +250,7 @@ export const authAPI = {
               convertObjectToSnakeCase({
                 ...child,
                 parentId: userId,
-              })
+              }),
             );
 
             // Generate UUIDs for each new child
@@ -261,7 +261,7 @@ export const authAPI = {
 
             console.log(
               "Children data to insert with IDs:",
-              childrenDataToInsert
+              childrenDataToInsert,
             );
 
             const { error: insertError } = await supabase
@@ -291,7 +291,7 @@ export const parentAPI = {
   // Add a child to parent
   addChild: async (
     parentId: string,
-    childData: Omit<Child, "id" | "parentId">
+    childData: Omit<Child, "id" | "parentId">,
   ) => {
     // Generate a UUID for the new child
     const childId = crypto.randomUUID();
@@ -303,7 +303,7 @@ export const parentAPI = {
           id: childId,
           ...childData,
           parentId,
-        })
+        }),
       )
       .select();
 
@@ -366,7 +366,7 @@ export const parentAPI = {
         *,
         events (*),
         children (*)
-      `
+      `,
       )
       .eq("parent_id", parentId);
 
@@ -383,7 +383,7 @@ export const eventAPI = {
     eventData: Omit<
       Event,
       "id" | "organizerId" | "registrations" | "createdAt" | "updatedAt"
-    >
+    >,
   ) => {
     const { data, error } = await supabase
       .from("events")
@@ -392,7 +392,7 @@ export const eventAPI = {
           ...eventData,
           organizerId,
           registrations: 0,
-        })
+        }),
       )
       .select();
 
@@ -449,7 +449,7 @@ export const eventAPI = {
 
       if (filters.search) {
         query = query.or(
-          `title.ilike.%${filters.search}%,description.ilike.%${filters.search}%`
+          `title.ilike.%${filters.search}%,description.ilike.%${filters.search}%`,
         );
       }
     }
@@ -480,7 +480,7 @@ export const eventAPI = {
           `
           *,
           organizers (*)
-        `
+        `,
         )
         .eq("id", eventId)
         .maybeSingle(); // Use maybeSingle instead of single to handle no results gracefully
@@ -501,7 +501,7 @@ export const eventAPI = {
         `
         *,
         children (*)
-      `
+      `,
       )
       .eq("event_id", eventId);
 
@@ -534,7 +534,7 @@ export const eventAPI = {
           }
 
           return { ...registration, parent: parentData };
-        })
+        }),
       );
 
       return convertObjectToCamelCase(registrationsWithParents);
@@ -555,10 +555,8 @@ export const registrationAPI = {
       emergencyContact: {
         name: string;
         phone: string;
-        relationship: string;
       };
-      paymentMethod?: string;
-    }
+    },
   ) => {
     try {
       // First get the event to check capacity
@@ -578,7 +576,7 @@ export const registrationAPI = {
       const confirmationCode = `${event.category
         .substring(0, 3)
         .toUpperCase()}-${new Date().getFullYear()}-${Math.floor(
-        1000 + Math.random() * 9000
+        1000 + Math.random() * 9000,
       )}`;
 
       // For development/demo purposes, we'll create a child and parent record first
@@ -611,7 +609,8 @@ export const registrationAPI = {
       } catch (childError) {
         console.error("Error handling child record:", childError);
         throw new Error(
-          "Failed to create child record: " + (childError.message || childError)
+          "Failed to create child record: " +
+            (childError.message || childError),
         );
       }
 
@@ -647,7 +646,7 @@ export const registrationAPI = {
         console.error("Error handling parent record:", parentError);
         throw new Error(
           "Failed to create parent record: " +
-            (parentError.message || parentError)
+            (parentError.message || parentError),
         );
       }
 
@@ -659,12 +658,11 @@ export const registrationAPI = {
             eventId,
             childId: registrationData.childId,
             parentId: registrationData.parentId,
-            status: "confirmed", // or 'pending' if payment is required
-            paymentStatus: event.isPaid ? "pending" : "paid",
+            status: "confirmed",
             confirmationCode,
             registrationDate: new Date().toISOString(),
             emergencyContact: registrationData.emergencyContact,
-          })
+          }),
         )
         .select();
 
@@ -698,9 +696,7 @@ export const registrationAPI = {
       .update(
         convertObjectToSnakeCase({
           status: "cancelled",
-          paymentStatus:
-            registration.payment_status === "paid" ? "refunded" : "cancelled",
-        })
+        }),
       )
       .eq("id", registrationId)
       .select();
@@ -732,7 +728,7 @@ export const registrationAPI = {
         *,
         events (*),
         children (*)
-      `
+      `,
       )
       .eq("id", registrationId)
       .single();
@@ -772,26 +768,11 @@ export const registrationAPI = {
   // Update registration status (for organizers)
   updateRegistrationStatus: async (
     registrationId: string,
-    status: "pending" | "confirmed" | "cancelled"
+    status: "pending" | "confirmed" | "cancelled",
   ) => {
     const { data, error } = await supabase
       .from("registrations")
       .update({ status })
-      .eq("id", registrationId)
-      .select();
-
-    if (error) throw error;
-    return convertObjectToCamelCase(data[0]);
-  },
-
-  // Update payment status (for organizers)
-  updatePaymentStatus: async (
-    registrationId: string,
-    paymentStatus: "pending" | "paid" | "refunded"
-  ) => {
-    const { data, error } = await supabase
-      .from("registrations")
-      .update({ payment_status: paymentStatus })
       .eq("id", registrationId)
       .select();
 
@@ -809,7 +790,7 @@ export const reviewAPI = {
     reviewData: {
       rating: number;
       comment: string;
-    }
+    },
   ) => {
     const { data, error } = await supabase
       .from("reviews")
@@ -820,7 +801,7 @@ export const reviewAPI = {
           rating: reviewData.rating,
           comment: reviewData.comment,
           date: new Date().toISOString(),
-        })
+        }),
       )
       .select();
 
@@ -840,7 +821,7 @@ export const reviewAPI = {
         `
         *,
         parents (first_name, last_name)
-      `
+      `,
       )
       .eq("event_id", eventId);
 
@@ -857,7 +838,7 @@ export const reviewAPI = {
         *,
         events (id, title, organizer_id),
         parents (first_name, last_name)
-      `
+      `,
       )
       .eq("events.organizer_id", organizerId);
 
@@ -882,7 +863,7 @@ async function updateOrganizerRating(eventId: string) {
       `
       rating,
       events!inner (organizer_id)
-    `
+    `,
     )
     .eq("events.organizer_id", event.organizer_id);
 

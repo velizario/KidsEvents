@@ -18,9 +18,7 @@ const formSchema = z
       phone: z
         .string()
         .min(10, { message: "Please enter a valid phone number" }),
-      relationship: z.string().min(2, { message: "Relationship is required" }),
     }),
-    paymentMethod: z.enum(["credit", "paypal"]),
     termsAccepted: z.boolean().refine((val) => val === true, {
       message: "You must accept the terms and conditions",
     }),
@@ -53,9 +51,7 @@ export const useRegistrationForm = (existingChildren: Child[] = []) => {
       emergencyContact: {
         name: "",
         phone: "",
-        relationship: "",
       },
-      paymentMethod: "credit",
       termsAccepted: false,
     },
   });
