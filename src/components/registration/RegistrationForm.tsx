@@ -11,11 +11,11 @@ import {
   Clock,
   MapPin,
   Users,
-  Plus,
-  Trash2,
   AlertCircle,
   CheckCircle2,
 } from "lucide-react";
+import ExistingChildSelector from "./ExistingChildSelector";
+import NewChildForm from "./NewChildForm";
 import { parentAPI } from "@/lib/api";
 
 import { Button } from "@/components/ui/button";
@@ -37,8 +37,10 @@ import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useRegistrationForm } from "@/hooks/useRegistrationForm";
 import { useEvents } from "@/hooks/useEvents";
+import { useParentData } from "@/hooks/useParentData";
 import { registrationAPI } from "@/lib/api";
-import { Event } from "@/types/models";
+import { Event, Child } from "@/types/models";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface RegistrationFormProps {
   useParamsHook?: typeof useRouterParams;
@@ -53,6 +55,15 @@ const RegistrationForm = ({
 }: RegistrationFormProps) => {
   const { eventId } = useParamsHook<{ eventId: string }>();
   const navigate = useNavigateHook();
+
+  // Fetch parent's existing children
+  const {
+    children: existingChildren,
+    loading: childrenLoading,
+    error: childrenError,
+    parentId,
+  } = useParentData();
+
   const {
     form,
     children,
@@ -64,7 +75,8 @@ const RegistrationForm = ({
     setSubmitError,
     setSubmitSuccess,
     submitSuccess,
-  } = useRegistrationForm();
+    existingChildren: formExistingChildren,
+  } = useRegistrationForm(existingChildren);
 
   const {
     event: fetchedEvent,
@@ -109,135 +121,131 @@ const RegistrationForm = ({
       setSubmitError(null);
       console.log("Registration submitted:", data);
 
-      // Get the first child from the form data
-      const childData = data.children[0];
+      // Get the current authenticated user
+      const { data: userData, error: userError } =
+        await supabase.auth.getUser();
 
-      // Generate a valid UUID for the child ID
-      // The parent ID will be fetched from the authenticated user
-      const childId = crypto.randomUUID();
+      if (userError) {
+        console.error("Error getting authenticated user:", userError);
+        throw new Error(
+          "Failed to get authenticated user: " + userError.message,
+        );
+      }
 
-      // Register for the event
-      try {
-        // First create the child record with the form data
-        const childFormData = data.children[0];
+      const actualParentId = userData.user?.id;
 
-        // Create the child record using direct supabase call without select=*
-        try {
-          // Create a date of birth based on the age (approximate)
-          const currentDate = new Date();
-          const approximateBirthYear =
-            currentDate.getFullYear() - parseInt(childFormData.age);
-          const dateOfBirth = new Date(approximateBirthYear, 0, 1)
-            .toISOString()
-            .split("T")[0]; // January 1st of the birth year
+      if (!actualParentId) {
+        throw new Error("User is not authenticated");
+      }
 
-          // Get the current authenticated user
-          const { data: userData, error: userError } =
-            await supabase.auth.getUser();
+      // Check if parent record already exists before creating it
+      const { data: existingParent, error: checkParentError } = await supabase
+        .from("parents")
+        .select("id")
+        .eq("id", actualParentId)
+        .maybeSingle();
 
-          if (userError) {
-            console.error("Error getting authenticated user:", userError);
-            throw new Error(
-              "Failed to get authenticated user: " + userError.message
-            );
-          }
+      if (checkParentError) {
+        console.error("Error checking for existing parent:", checkParentError);
+      }
 
-          const actualParentId = userData.user?.id;
+      // Only create parent record if it doesn't already exist
+      if (!existingParent) {
+        const { error: parentError } = await supabase.from("parents").insert({
+          id: actualParentId,
+          email: userData.user.email || "demo@example.com",
+          first_name: "Demo",
+          last_name: "Parent",
+          phone: data.emergencyContact.phone || "555-123-4567",
+        });
 
-          if (!actualParentId) {
-            throw new Error("User is not authenticated");
-          }
+        if (parentError) {
+          console.error("Error creating parent record:", parentError);
+          throw new Error(
+            "Failed to create parent record: " + parentError.message,
+          );
+        }
+        console.log("Created new parent record");
+      } else {
+        console.log("Parent record already exists, skipping creation");
+      }
 
-          const { error: childError } = await supabase.from("children").insert({
-            id: childId,
-            parent_id: actualParentId,
-            first_name: childFormData.firstName,
-            last_name: childFormData.lastName,
-            age: parseInt(childFormData.age),
-            date_of_birth: dateOfBirth, // Add the date_of_birth field
-          });
+      // Process all children (both existing and new)
+      const childrenToRegister = [];
 
-          if (childError) {
+      // Process existing children selections
+      if (
+        data.selectedExistingChildIds &&
+        data.selectedExistingChildIds.length > 0
+      ) {
+        childrenToRegister.push(...data.selectedExistingChildIds);
+      }
+
+      // Process new children
+      if (data.children && data.children.length > 0) {
+        for (const childFormData of data.children) {
+          // Generate a valid UUID for the child ID
+          const childId = crypto.randomUUID();
+
+          try {
+            // Create a date of birth based on the age (approximate)
+            const currentDate = new Date();
+            const approximateBirthYear =
+              currentDate.getFullYear() - parseInt(childFormData.age);
+            const dateOfBirth = new Date(approximateBirthYear, 0, 1)
+              .toISOString()
+              .split("T")[0]; // January 1st of the birth year
+
+            const { error: childError } = await supabase
+              .from("children")
+              .insert({
+                id: childId,
+                parent_id: actualParentId,
+                first_name: childFormData.firstName,
+                last_name: childFormData.lastName,
+                age: parseInt(childFormData.age),
+                date_of_birth: dateOfBirth,
+              });
+
+            if (childError) {
+              console.error("Error creating child record:", childError);
+              throw new Error(
+                "Failed to create child record: " + childError.message,
+              );
+            }
+
+            // Add the new child ID to the list of children to register
+            childrenToRegister.push(childId);
+          } catch (childError) {
             console.error("Error creating child record:", childError);
             throw new Error(
-              "Failed to create child record: " + childError.message
+              "Failed to create child record: " +
+                (childError instanceof Error
+                  ? childError.message
+                  : String(childError)),
             );
           }
-        } catch (childError) {
-          console.error("Error creating child record:", childError);
-          throw new Error(
-            "Failed to create child record: " +
-              (childError instanceof Error
-                ? childError.message
-                : String(childError))
+        }
+      }
+
+      // Register all children for the event
+      try {
+        for (const childId of childrenToRegister) {
+          const registration = await registrationAPI.registerForEvent(
+            eventId || mockEvent?.id || "",
+            {
+              childId,
+              parentId: actualParentId,
+              emergencyContact: data.emergencyContact,
+              paymentMethod: data.paymentMethod,
+            },
           );
-        }
-
-        // Get the current authenticated user
-        const { data: userData, error: userError } =
-          await supabase.auth.getUser();
-
-        if (userError) {
-          console.error("Error getting authenticated user:", userError);
-          throw new Error(
-            "Failed to get authenticated user: " + userError.message
-          );
-        }
-
-        // Use the actual user ID instead of a random UUID
-        const actualParentId = userData.user?.id;
-
-        if (!actualParentId) {
-          throw new Error("User is not authenticated");
-        }
-
-        // Check if parent record already exists before creating it
-        const { data: existingParent, error: checkParentError } = await supabase
-          .from("parents")
-          .select("id")
-          .eq("id", actualParentId)
-          .maybeSingle();
-
-        if (checkParentError) {
-          console.error(
-            "Error checking for existing parent:",
-            checkParentError
-          );
-        }
-
-        // Only create parent record if it doesn't already exist
-        if (!existingParent) {
-          const { error: parentError } = await supabase.from("parents").insert({
-            id: actualParentId,
-            email: userData.user.email || "demo@example.com",
-            first_name: "Demo",
-            last_name: "Parent",
-            phone: data.emergencyContact.phone || "555-123-4567",
-          });
-
-          if (parentError) {
-            console.error("Error creating parent record:", parentError);
-            throw new Error(
-              "Failed to create parent record: " + parentError.message
-            );
-          }
-          console.log("Created new parent record");
-        } else {
-          console.log("Parent record already exists, skipping creation");
-        }
-
-        // Now register for the event - use the already fetched user data
-
-        const registration = await registrationAPI.registerForEvent(
-          eventId || mockEvent?.id || "",
-          {
+          console.log(
+            "Registration successful for child ID:",
             childId,
-            parentId: actualParentId,
-            emergencyContact: data.emergencyContact,
-            paymentMethod: data.paymentMethod,
-          }
-        );
-        console.log("Registration successful:", registration);
+            registration,
+          );
+        }
       } catch (registrationError) {
         console.error("Registration API error:", registrationError);
         throw registrationError;
@@ -254,7 +262,7 @@ const RegistrationForm = ({
       setSubmitError(
         error instanceof Error
           ? error
-          : new Error("Failed to complete registration")
+          : new Error("Failed to complete registration"),
       );
     } finally {
       setIsSubmitting(false);
@@ -296,88 +304,38 @@ const RegistrationForm = ({
                 <div className="space-y-4">
                   <div className="flex justify-between items-center">
                     <h2 className="text-xl font-semibold">Child Information</h2>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={addChild}
-                    >
-                      <Plus className="h-4 w-4 mr-2" />
-                      Add Another Child
-                    </Button>
                   </div>
 
-                  {children.map((child, index) => (
-                    <Card key={child.id}>
-                      <CardContent className="p-6">
-                        <div className="flex justify-between items-center mb-4">
-                          <h3 className="font-medium">Child {index + 1}</h3>
-                          {children.length > 1 && (
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => removeChild(index)}
-                              className="text-destructive"
-                            >
-                              <Trash2 className="h-4 w-4 mr-2" />
-                              Remove
-                            </Button>
-                          )}
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <FormField
+                  {/* Combined child selection and creation */}
+                  <div className="space-y-6">
+                    {/* Existing Children Selection */}
+                    <div className="space-y-4">
+                      <h3 className="text-lg font-medium">
+                        Select Existing Children
+                      </h3>
+                      <FormField
+                        control={form.control}
+                        name="selectedExistingChildIds"
+                        render={() => (
+                          <ExistingChildSelector
                             control={form.control}
-                            name={`children.${index}.firstName`}
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>First Name</FormLabel>
-                                <FormControl>
-                                  <Input placeholder="John" {...field} />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
+                            name="selectedExistingChildIds"
+                            existingChildren={existingChildren}
+                            loading={childrenLoading}
+                            error={childrenError}
                           />
+                        )}
+                      />
+                    </div>
 
-                          <FormField
-                            control={form.control}
-                            name={`children.${index}.lastName`}
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Last Name</FormLabel>
-                                <FormControl>
-                                  <Input placeholder="Doe" {...field} />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                        </div>
-
-                        <div className="mt-4">
-                          <FormField
-                            control={form.control}
-                            name={`children.${index}.age`}
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Age</FormLabel>
-                                <FormControl>
-                                  <Input
-                                    type="number"
-                                    placeholder="8"
-                                    {...field}
-                                  />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
+                    {/* Add New Child Section */}
+                    <NewChildForm
+                      form={form}
+                      children={children}
+                      addChild={addChild}
+                      removeChild={removeChild}
+                    />
+                  </div>
                 </div>
 
                 {/* Emergency Contact */}
@@ -645,14 +603,19 @@ const RegistrationForm = ({
                         <p className="text-sm text-muted-foreground">
                           Children
                         </p>
-                        <p className="font-medium">{children.length}</p>
+                        <p className="font-medium">
+                          {(form.getValues().selectedExistingChildIds?.length ||
+                            0) + (form.getValues().children?.length || 0)}
+                        </p>
                       </div>
                       <div className="flex justify-between items-center mt-2 text-lg font-bold">
                         <p>Total</p>
                         <p>
                           $
                           {parseInt(event.price?.replace("$", "") || "0") *
-                            children.length}
+                            ((form.getValues().selectedExistingChildIds
+                              ?.length || 0) +
+                              (form.getValues().children?.length || 0))}
                         </p>
                       </div>
                     </div>
