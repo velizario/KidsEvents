@@ -117,7 +117,7 @@ const OrganizerProfile = () => {
                 {organizer.organizationName}
               </h1>
               <p className="text-sm text-muted-foreground">
-                {organizer.firstName} {organizer.lastName}
+                {organizer.firstName || ""} {organizer.lastName || ""}
               </p>
               <div className="flex items-center gap-2 mt-2">
                 <div className="flex items-center">

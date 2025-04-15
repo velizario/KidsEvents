@@ -129,12 +129,10 @@ const OrganizerDashboard = () => {
               <p className="text-muted-foreground">
                 {user?.organizationName || ""} • {organizerName}
               </p>
-              {user?.phone && (
-                <p className="text-muted-foreground flex items-center mt-1">
-                  <Phone className="h-3 w-3 mr-1" />{" "}
-                  {user.phone || "Not provided"}
-                </p>
-              )}
+              <p className="text-muted-foreground flex items-center mt-1">
+                <Phone className="h-3 w-3 mr-1" />{" "}
+                {user?.phone || "Not provided"}
+              </p>
             </div>
             <div className="flex gap-2">
               <Button variant="outline" asChild>

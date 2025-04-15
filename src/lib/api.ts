@@ -160,7 +160,7 @@ export const authAPI = {
 
         if (error) throw error;
 
-        // Add phone from auth user data
+        // Add user data from auth user
         userData = {
           ...data,
           phone: authUser?.user?.phone || "",
@@ -193,17 +193,31 @@ export const authAPI = {
     const table = userType === "parent" ? "parents" : "organizers";
 
     try {
-      // Extract phone from userData to update in auth.users
-      const { phone, ...profileData } = userData as any;
+      // Extract user metadata fields to update in auth.users
+      const { phone, firstName, lastName, ...profileData } = userData as any;
 
-      // Update phone in auth.users if provided
-      if (phone) {
-        const { error: authUpdateError } = await supabase.auth.updateUser({
-          phone: phone,
-        });
+      // Update user metadata in auth.users if provided
+      if (phone || firstName || lastName) {
+        const updateData: any = {};
+
+        if (phone) updateData.phone = phone;
+
+        // Update user metadata if first name or last name is provided
+        if (firstName || lastName) {
+          updateData.data = {
+            firstName: firstName || undefined,
+            lastName: lastName || undefined,
+          };
+        }
+
+        const { error: authUpdateError } =
+          await supabase.auth.updateUser(updateData);
 
         if (authUpdateError) {
-          console.error("Error updating phone in auth user:", authUpdateError);
+          console.error(
+            "Error updating user data in auth user:",
+            authUpdateError,
+          );
           throw authUpdateError;
         }
       }

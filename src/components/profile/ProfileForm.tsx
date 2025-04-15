@@ -116,10 +116,10 @@ const ProfileForm = ({
       if (userType === "parent") {
         const parentUser = user as Parent & { children?: Child[] };
         parentForm.reset({
-          firstName: parentUser.firstName || "",
-          lastName: parentUser.lastName || "",
-          email: parentUser.email || "",
-          phone: parentUser.phone || "", // Phone is now from auth.users table
+          firstName: user.firstName || "",
+          lastName: user.lastName || "",
+          email: user.email || "",
+          phone: user.phone || "", // Phone is from auth.users table
           // Existing children are loaded in their current order. New children will be prepended.
           children:
             parentUser.children?.map((child) => ({
@@ -135,7 +135,7 @@ const ProfileForm = ({
           organizationName: (user as any).organizationName || "",
           firstName: user.firstName || "",
           lastName: user.lastName || "",
-          phone: user.phone || "", // Phone is now from auth.users table
+          phone: user.phone || "", // Phone is from auth.users table
           description: (user as any).description || "",
           website: (user as any).website || "",
         });

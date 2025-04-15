@@ -83,15 +83,13 @@ const ParentDashboard = () => {
             <div>
               <h1 className="text-2xl font-bold">Parent Dashboard</h1>
               <p className="text-muted-foreground">
-                {parent?.firstName} {parent?.lastName} • Manage your children's
-                activities
+                {parent?.firstName || ""} {parent?.lastName || ""} • Manage your
+                children's activities
               </p>
-              {parent?.phone && (
-                <p className="text-muted-foreground flex items-center mt-1">
-                  <Phone className="h-3 w-3 mr-1" />{" "}
-                  {parent.phone || "Not provided"}
-                </p>
-              )}
+              <p className="text-muted-foreground flex items-center mt-1">
+                <Phone className="h-3 w-3 mr-1" />{" "}
+                {parent?.phone || "Not provided"}
+              </p>
             </div>
             <div className="flex gap-2">
               <Button variant="outline" asChild>
