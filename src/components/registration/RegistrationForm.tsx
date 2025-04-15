@@ -15,7 +15,6 @@ import {
   CheckCircle2,
 } from "lucide-react";
 import ExistingChildSelector from "./ExistingChildSelector";
-import NewChildForm from "./NewChildForm";
 import { parentAPI } from "@/lib/api";
 
 import { Button } from "@/components/ui/button";
@@ -66,9 +65,6 @@ const RegistrationForm = ({
 
   const {
     form,
-    children,
-    addChild,
-    removeChild,
     isSubmitting,
     submitError,
     setIsSubmitting,
@@ -170,7 +166,7 @@ const RegistrationForm = ({
         console.log("Parent record already exists, skipping creation");
       }
 
-      // Process all children (both existing and new)
+      // Get selected existing children
       const childrenToRegister = [];
 
       // Process existing children selections
@@ -179,53 +175,6 @@ const RegistrationForm = ({
         data.selectedExistingChildIds.length > 0
       ) {
         childrenToRegister.push(...data.selectedExistingChildIds);
-      }
-
-      // Process new children
-      if (data.children && data.children.length > 0) {
-        for (const childFormData of data.children) {
-          // Generate a valid UUID for the child ID
-          const childId = crypto.randomUUID();
-
-          try {
-            // Create a date of birth based on the age (approximate)
-            const currentDate = new Date();
-            const approximateBirthYear =
-              currentDate.getFullYear() - parseInt(childFormData.age);
-            const dateOfBirth = new Date(approximateBirthYear, 0, 1)
-              .toISOString()
-              .split("T")[0]; // January 1st of the birth year
-
-            const { error: childError } = await supabase
-              .from("children")
-              .insert({
-                id: childId,
-                parent_id: actualParentId,
-                first_name: childFormData.firstName,
-                last_name: childFormData.lastName,
-                age: parseInt(childFormData.age),
-                date_of_birth: dateOfBirth,
-              });
-
-            if (childError) {
-              console.error("Error creating child record:", childError);
-              throw new Error(
-                "Failed to create child record: " + childError.message,
-              );
-            }
-
-            // Add the new child ID to the list of children to register
-            childrenToRegister.push(childId);
-          } catch (childError) {
-            console.error("Error creating child record:", childError);
-            throw new Error(
-              "Failed to create child record: " +
-                (childError instanceof Error
-                  ? childError.message
-                  : String(childError)),
-            );
-          }
-        }
       }
 
       // Register all children for the event
@@ -308,11 +257,9 @@ const RegistrationForm = ({
 
                   {/* Combined child selection and creation */}
                   <div className="space-y-6">
-                    {/* Existing Children Selection */}
+                    {/* Children Selection */}
                     <div className="space-y-4">
-                      <h3 className="text-lg font-medium">
-                        Select Existing Children
-                      </h3>
+                      <h3 className="text-lg font-medium">Select Children</h3>
                       <FormField
                         control={form.control}
                         name="selectedExistingChildIds"
@@ -327,14 +274,6 @@ const RegistrationForm = ({
                         )}
                       />
                     </div>
-
-                    {/* Add New Child Section */}
-                    <NewChildForm
-                      form={form}
-                      children={children}
-                      addChild={addChild}
-                      removeChild={removeChild}
-                    />
                   </div>
                 </div>
 

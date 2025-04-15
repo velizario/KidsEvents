@@ -7,21 +7,10 @@ import { Child } from "@/types/models";
 // Form schema definition
 const formSchema = z
   .object({
-    selectedExistingChildIds: z.array(z.string()).optional(),
-    children: z
-      .array(
-        z.object({
-          id: z.string().optional(),
-          firstName: z.string().min(2, { message: "First name is required" }),
-          lastName: z.string().min(2, { message: "Last name is required" }),
-          age: z
-            .string()
-            .refine((val) => !isNaN(parseInt(val)) && parseInt(val) > 0, {
-              message: "Please enter a valid age",
-            }),
-        }),
-      )
-      .optional(),
+    selectedExistingChildIds: z
+      .array(z.string())
+      .min(1, { message: "At least one child must be selected" }),
+
     emergencyContact: z.object({
       name: z
         .string()
@@ -38,23 +27,21 @@ const formSchema = z
   })
   .refine(
     (data) => {
-      // Ensure at least one child is selected or added
+      // Ensure at least one child is selected
       const hasExistingChildren =
         data.selectedExistingChildIds &&
         data.selectedExistingChildIds.length > 0;
-      const hasNewChildren = data.children && data.children.length > 0;
-      return hasExistingChildren || hasNewChildren;
+      return hasExistingChildren;
     },
     {
-      message: "At least one child must be registered",
-      path: ["children"],
+      message: "At least one child must be selected",
+      path: ["selectedExistingChildIds"],
     },
   );
 
 export type RegistrationFormValues = z.infer<typeof formSchema>;
 
 export const useRegistrationForm = (existingChildren: Child[] = []) => {
-  const [children, setChildren] = useState([{ id: 1 }]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<Error | null>(null);
   const [submitSuccess, setSubmitSuccess] = useState(false);
@@ -63,13 +50,6 @@ export const useRegistrationForm = (existingChildren: Child[] = []) => {
     resolver: zodResolver(formSchema),
     defaultValues: {
       selectedExistingChildIds: [],
-      children: [
-        {
-          firstName: "",
-          lastName: "",
-          age: "",
-        },
-      ],
       emergencyContact: {
         name: "",
         phone: "",
@@ -80,42 +60,14 @@ export const useRegistrationForm = (existingChildren: Child[] = []) => {
     },
   });
 
-  const addChild = () => {
-    setChildren([...children, { id: children.length + 1 }]);
-    const currentChildren = form.getValues().children || [];
-    form.setValue("children", [
-      ...currentChildren,
-      {
-        firstName: "",
-        lastName: "",
-        age: "",
-      },
-    ]);
-  };
-
-  const removeChild = (index: number) => {
-    if (children.length > 1) {
-      const newChildren = [...children];
-      newChildren.splice(index, 1);
-      setChildren(newChildren);
-
-      const currentChildren = form.getValues().children || [];
-      currentChildren.splice(index, 1);
-      form.setValue("children", currentChildren);
-    }
-  };
-
   return {
     form,
-    children,
     isSubmitting,
     submitError,
     submitSuccess,
     setIsSubmitting,
     setSubmitError,
     setSubmitSuccess,
-    addChild,
-    removeChild,
     existingChildren,
   };
 };
