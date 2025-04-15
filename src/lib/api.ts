@@ -430,7 +430,7 @@ export const eventAPI = {
   }) => {
     let query = supabase.from("events").select(`
         *,
-        organizers (id, organization_name, contact_name, email, phone)
+        organizers!organizer_id(id, organization_name, contact_name, email, phone)
       `);
 
     // Apply filters if provided
@@ -479,7 +479,7 @@ export const eventAPI = {
         .select(
           `
           *,
-          organizers (*)
+          organizers!organizer_id(*)
         `,
         )
         .eq("id", eventId)

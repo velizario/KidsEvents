@@ -1,5 +1,6 @@
 // Core data models for the application
 
+// Base User model (matches auth.users table)
 export interface User {
   id: string;
   email: string;
@@ -11,13 +12,15 @@ export interface User {
   updatedAt: string;
 }
 
-export interface Parent extends User {
-  userType: "parent";
-  children: Child[];
+// Parent-specific data (matches parents table)
+export interface ParentData {
+  id: string; // References User.id
+  children?: Child[];
 }
 
-export interface Organizer extends User {
-  userType: "organizer";
+// Organizer-specific data (matches organizers table)
+export interface OrganizerData {
+  id: string; // References User.id
   organizationName: string;
   contactName: string;
   description: string;
@@ -25,6 +28,15 @@ export interface Organizer extends User {
   yearEstablished?: number;
   rating?: number;
   reviewCount?: number;
+}
+
+// Combined types for application use
+export interface Parent extends User, ParentData {
+  userType: "parent";
+}
+
+export interface Organizer extends User, OrganizerData {
+  userType: "organizer";
 }
 
 export interface Child {
