@@ -3,6 +3,10 @@ import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { User, Mail, Phone, Plus, Trash2, Loader2 } from "lucide-react";
+import {
+  transformBulgarianMobileToE164,
+  transformE164ToBulgarianLocal,
+} from "@/lib/utils";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -119,7 +123,7 @@ const ProfileForm = ({
           firstName: user.firstName || "",
           lastName: user.lastName || "",
           email: user.email || "",
-          phone: user.phone || "", // Phone is from auth.users table
+          phone: user.phone || "", // Phone is already transformed to Bulgarian format in the API
           // Existing children are loaded in their current order. New children will be prepended.
           children:
             parentUser.children?.map((child) => ({
@@ -135,7 +139,7 @@ const ProfileForm = ({
           organizationName: (user as any).organizationName || "",
           firstName: user.firstName || "",
           lastName: user.lastName || "",
-          phone: user.phone || "", // Phone is from auth.users table
+          phone: user.phone || "", // Phone is already transformed to Bulgarian format in the API
           description: (user as any).description || "",
           website: (user as any).website || "",
         });
@@ -186,7 +190,7 @@ const ProfileForm = ({
           firstName: data.firstName,
           lastName: data.lastName,
           email: data.email,
-          phone: data.phone, // Phone will be updated in auth.users table
+          phone: data.phone, // Phone will be transformed to E.164 format in the API
         },
         childrenData,
         deletedChildrenIds.length > 0 ? deletedChildrenIds : undefined,
@@ -232,7 +236,7 @@ const ProfileForm = ({
         organizationName: data.organizationName,
         firstName: data.firstName,
         lastName: data.lastName,
-        phone: data.phone, // Phone will be updated in auth.users table
+        phone: data.phone, // Phone will be transformed to E.164 format in the API
         description: data.description,
         website: data.website,
       });

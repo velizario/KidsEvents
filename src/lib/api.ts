@@ -135,11 +135,14 @@ export const authAPI = {
           // Continue with parent data even if children fetch fails
         }
 
+        // Import the phone number transformation function
+        const { transformE164ToBulgarianLocal } = await import("./utils");
+
         // Add children and phone to parent data
         userData = {
           ...data,
           children: childrenData || [],
-          phone: authUser?.user?.phone || "",
+          phone: transformE164ToBulgarianLocal(authUser?.user?.phone || ""),
           email: authUser?.user?.email || "",
           firstName: authUser?.user?.user_metadata?.firstName || "",
           lastName: authUser?.user?.user_metadata?.lastName || "",
@@ -160,10 +163,13 @@ export const authAPI = {
 
         if (error) throw error;
 
+        // Import the phone number transformation function
+        const { transformE164ToBulgarianLocal } = await import("./utils");
+
         // Add user data from auth user
         userData = {
           ...data,
-          phone: authUser?.user?.phone || "",
+          phone: transformE164ToBulgarianLocal(authUser?.user?.phone || ""),
           email: authUser?.user?.email || "",
           firstName: authUser?.user?.user_metadata?.firstName || "",
           lastName: authUser?.user?.user_metadata?.lastName || "",
@@ -193,6 +199,9 @@ export const authAPI = {
     const table = userType === "parent" ? "parents" : "organizers";
 
     try {
+      // Import the phone number transformation function
+      const { transformBulgarianMobileToE164 } = await import("./utils");
+
       // Extract user metadata fields to update in auth.users
       const { phone, firstName, lastName, ...profileData } = userData as any;
 
@@ -200,7 +209,10 @@ export const authAPI = {
       if (phone || firstName || lastName) {
         const updateData: any = {};
 
-        if (phone) updateData.phone = phone;
+        if (phone) {
+          // Transform the phone number to E.164 format before saving to the database
+          updateData.phone = transformBulgarianMobileToE164(phone);
+        }
 
         // Update user metadata if first name or last name is provided
         if (firstName || lastName) {
