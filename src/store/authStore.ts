@@ -19,7 +19,7 @@ type PersistedAuthState = Pick<
 >;
 
 // Set current log level - can be adjusted for production/development
-const CURRENT_LOG_LEVEL = LOG_LEVEL.INFO; // Assuming DEBUG for development
+const CURRENT_LOG_LEVEL = LOG_LEVEL.DEBUG; // Assuming DEBUG for development
 
 // Logging utility functions
 const logger = {
@@ -139,8 +139,7 @@ export const useAuthStore = create(
                 .from(type === "parent" ? "parents" : "organizers")
                 .select("*")
                 .eq("id", user.id)
-                .single();
-
+                .maybeSingle();
               if (profileError) {
                 logger.error(`Error fetching ${type} profile:`, profileError);
               }
@@ -215,10 +214,6 @@ export const useAuthStore = create(
                     .upsert(
                       {
                         id: user.id,
-                        email: user.email,
-                        first_name: userData.firstName || "",
-                        last_name: userData.lastName || "",
-                        phone: userData.phone || "",
                       },
                       { onConflict: "id" }
                     );
@@ -267,7 +262,7 @@ export const useAuthStore = create(
                   .from(type === "parent" ? "parents" : "organizers")
                   .select("*")
                   .eq("id", user.id)
-                  .single();
+                  .maybeSingle();
 
                 if (newProfile) {
                   logger.info("Successfully fetched newly created profile", {
@@ -411,10 +406,6 @@ export const useAuthStore = create(
               .upsert(
                 {
                   id: data.user?.id,
-                  email,
-                  first_name: userData.firstName,
-                  last_name: userData.lastName,
-                  phone: userData.phone || "",
                 },
                 { onConflict: "id" }
               );

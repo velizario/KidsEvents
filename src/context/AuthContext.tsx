@@ -131,7 +131,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
                   .upsert(
                     {
                       id: user.id,
-                      email: user.email,
                       first_name: userData.firstName || "",
                       last_name: userData.lastName || "",
                       phone: userData.phone || "",
@@ -243,7 +242,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         const { error: parentError } = await supabase.from("parents").upsert(
           {
             id: data.user?.id,
-            email,
             first_name: userData.firstName,
             last_name: userData.lastName,
             phone: userData.phone || "",
