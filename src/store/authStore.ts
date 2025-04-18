@@ -185,10 +185,6 @@ export const useAuthStore = create(
                   email: user.email,
                   firstName: user.user_metadata.firstName || "",
                   lastName: user.user_metadata.lastName || "",
-                  organizationName: user.user_metadata?.organizationName,
-                  contactName: user.user_metadata?.contactName,
-                  description: user.user_metadata?.description,
-                  website: user.user_metadata?.website,
                 };
                 profileCache.set(user.id, userData);
 
@@ -244,11 +240,8 @@ export const useAuthStore = create(
                     .upsert(
                       {
                         id: user.id,
-                        email: user.email,
                         organization_name: userData.organizationName || "",
-                        contact_name: userData.contactName || "",
                         description: userData.description || "",
-                        phone: userData.phone || "",
                         website: userData.website || "",
                       },
                       { onConflict: "id" }
@@ -432,11 +425,8 @@ export const useAuthStore = create(
               .upsert(
                 {
                   id: data.user?.id,
-                  email,
                   organization_name: (userData as any).organizationName || "",
-                  contact_name: (userData as any).contactName || "",
                   description: (userData as any).description || "",
-                  phone: userData.phone || "",
                   website: (userData as any).website || "",
                 },
                 { onConflict: "id" }
