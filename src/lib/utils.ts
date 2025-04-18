@@ -52,5 +52,6 @@ export function transformE164ToBulgarianLocal(phone: string): string {
   if (!phone) return "";
 
   const p = phone.replace(/[\s()-]/g, "");
-  return p.startsWith("+359") ? "0" + p.slice(4) : p;
+  console.log("E164 to local", p);
+  return p.startsWith("359") ? "0" + p.slice(3) : p;
 }

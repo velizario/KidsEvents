@@ -67,7 +67,7 @@ interface ProfileFormProps {
   userType: "parent" | "organizer";
   initialData?: ParentProfileFormValues | OrganizerProfileFormValues;
   onSubmit?: (
-    data: ParentProfileFormValues | OrganizerProfileFormValues,
+    data: ParentProfileFormValues | OrganizerProfileFormValues
   ) => void;
 }
 
@@ -119,6 +119,7 @@ const ProfileForm = ({
     if (user && user.id) {
       if (userType === "parent") {
         const parentUser = user as Parent & { children?: Child[] };
+        console.log("Parent User:", user);
         parentForm.reset({
           firstName: user.firstName || "",
           lastName: user.lastName || "",
@@ -193,7 +194,7 @@ const ProfileForm = ({
           phone: data.phone, // Phone will be transformed to E.164 format in the API
         },
         childrenData,
-        deletedChildrenIds.length > 0 ? deletedChildrenIds : undefined,
+        deletedChildrenIds.length > 0 ? deletedChildrenIds : undefined
       );
 
       setDeletedChildrenIds([]);

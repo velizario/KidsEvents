@@ -3,7 +3,7 @@ import { persist, createJSONStorage } from "zustand/middleware";
 import { supabase } from "@/lib/supabase";
 import { User } from "@/types/models";
 import { useNavigate } from "react-router-dom";
-import { keysToCamelCase } from "@/lib/utils";
+import { keysToCamelCase, transformE164ToBulgarianLocal } from "@/lib/utils";
 
 // Configure logging level
 const LOG_LEVEL = {
@@ -19,7 +19,7 @@ type PersistedAuthState = Pick<
 >;
 
 // Set current log level - can be adjusted for production/development
-const CURRENT_LOG_LEVEL = LOG_LEVEL.DEBUG; // Assuming DEBUG for development
+const CURRENT_LOG_LEVEL = LOG_LEVEL.INFO; // Assuming DEBUG for development
 
 // Logging utility functions
 const logger = {
@@ -100,6 +100,7 @@ export const useAuthStore = create(
             logger.debug("User fetch result", {
               hasUser: !!user,
               userId: user?.id,
+              userData: user,
             });
             if (user) {
               if (
@@ -180,6 +181,14 @@ export const useAuthStore = create(
                   ...camelCaseProfile,
                   id: user.id,
                   userType: type,
+                  phone: transformE164ToBulgarianLocal(user.phone) || "",
+                  email: user.email,
+                  firstName: user.user_metadata.firstName || "",
+                  lastName: user.user_metadata.lastName || "",
+                  organizationName: user.user_metadata?.organizationName,
+                  contactName: user.user_metadata?.contactName,
+                  description: user.user_metadata?.description,
+                  website: user.user_metadata?.website,
                 };
                 profileCache.set(user.id, userData);
 
