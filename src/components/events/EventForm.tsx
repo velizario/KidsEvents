@@ -1,9 +1,9 @@
-import React, { useState } from "react";
+import React from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { format } from "date-fns";
-import { Calendar as CalendarIcon, Plus, Trash2 } from "lucide-react";
+import { Calendar as CalendarIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -40,15 +40,7 @@ const formSchema = z.object({
   date: z.date(),
   location: z.string().min(3, { message: "Location is required" }),
   category: z.string(),
-  ageGroups: z.array(
-    z.object({
-      minAge: z.string(),
-      maxAge: z.string(),
-    }),
-  ),
   capacity: z.string(),
-  price: z.string().optional(),
-  isPaid: z.boolean().default(false),
 });
 
 type EventFormValues = z.infer<typeof formSchema>;
@@ -70,10 +62,7 @@ const EventForm = ({
     date: new Date(),
     location: "",
     category: "sports",
-    ageGroups: [{ minAge: "3", maxAge: "5" }],
     capacity: "20",
-    price: "",
-    isPaid: false,
     ...initialData,
   };
 
@@ -82,29 +71,8 @@ const EventForm = ({
     defaultValues,
   });
 
-  const isPaid = form.watch("isPaid");
-
-  const [ageGroups, setAgeGroups] = useState(
-    defaultValues.ageGroups || [{ minAge: "3", maxAge: "5" }],
-  );
-
-  const addAgeGroup = () => {
-    setAgeGroups([...ageGroups, { minAge: "", maxAge: "" }]);
-  };
-
-  const removeAgeGroup = (index: number) => {
-    const updatedAgeGroups = [...ageGroups];
-    updatedAgeGroups.splice(index, 1);
-    setAgeGroups(updatedAgeGroups);
-  };
-
   const handleSubmit = (data: EventFormValues) => {
-    // Update the ageGroups in the form data before submitting
-    const formData = {
-      ...data,
-      ageGroups: ageGroups,
-    };
-    onSubmit(formData);
+    onSubmit(data);
   };
 
   return (
@@ -116,7 +84,6 @@ const EventForm = ({
       <Form {...form}>
         <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Title */}
             <FormField
               control={form.control}
               name="title"
@@ -132,7 +99,6 @@ const EventForm = ({
               )}
             />
 
-            {/* Category */}
             <FormField
               control={form.control}
               name="category"
@@ -164,7 +130,6 @@ const EventForm = ({
             />
           </div>
 
-          {/* Description */}
           <FormField
             control={form.control}
             name="description"
@@ -187,12 +152,11 @@ const EventForm = ({
           />
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Date */}
             <FormField
               control={form.control}
               name="date"
               render={({ field }) => (
-                <FormItem className="flex flex-col">
+                <FormItem>
                   <FormLabel>Event Date</FormLabel>
                   <Popover>
                     <PopoverTrigger asChild>
@@ -227,7 +191,6 @@ const EventForm = ({
               )}
             />
 
-            {/* Location */}
             <FormField
               control={form.control}
               name="location"
@@ -246,73 +209,7 @@ const EventForm = ({
             />
           </div>
 
-          {/* Age Groups */}
-          <div className="space-y-4">
-            <div className="flex justify-between items-center">
-              <FormLabel className="text-base">Age Groups</FormLabel>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={addAgeGroup}
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Add Age Group
-              </Button>
-            </div>
-
-            {ageGroups.map((ageGroup, index) => (
-              <div key={index} className="flex items-end gap-4">
-                <div className="w-1/3">
-                  <FormLabel className={index !== 0 ? "sr-only" : ""}>
-                    Min Age
-                  </FormLabel>
-                  <Input
-                    type="number"
-                    placeholder="Min Age"
-                    value={ageGroup.minAge}
-                    onChange={(e) => {
-                      const newAgeGroups = [...ageGroups];
-                      newAgeGroups[index].minAge = e.target.value;
-                      setAgeGroups(newAgeGroups);
-                    }}
-                  />
-                </div>
-                <div className="w-1/3">
-                  <FormLabel className={index !== 0 ? "sr-only" : ""}>
-                    Max Age
-                  </FormLabel>
-                  <Input
-                    type="number"
-                    placeholder="Max Age"
-                    value={ageGroup.maxAge}
-                    onChange={(e) => {
-                      const newAgeGroups = [...ageGroups];
-                      newAgeGroups[index].maxAge = e.target.value;
-                      setAgeGroups(newAgeGroups);
-                    }}
-                  />
-                </div>
-                {index > 0 && (
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => removeAgeGroup(index)}
-                    className="text-destructive"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                )}
-              </div>
-            ))}
-            <FormDescription>
-              Specify age ranges for participants
-            </FormDescription>
-          </div>
-
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Capacity */}
             <FormField
               control={form.control}
               name="capacity"
@@ -329,48 +226,7 @@ const EventForm = ({
                 </FormItem>
               )}
             />
-
-            {/* Price */}
-            <FormField
-              control={form.control}
-              name="isPaid"
-              render={({ field }) => (
-                <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
-                  <FormControl>
-                    <input
-                      type="checkbox"
-                      checked={field.value}
-                      onChange={field.onChange}
-                      className="h-4 w-4 mt-1"
-                    />
-                  </FormControl>
-                  <div className="space-y-1 leading-none">
-                    <FormLabel>Paid Event</FormLabel>
-                    <FormDescription>
-                      Check if this is a paid event
-                    </FormDescription>
-                  </div>
-                </FormItem>
-              )}
-            />
           </div>
-
-          {isPaid && (
-            <FormField
-              control={form.control}
-              name="price"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Price ($)</FormLabel>
-                  <FormControl>
-                    <Input type="number" placeholder="29.99" {...field} />
-                  </FormControl>
-                  <FormDescription>Cost per participant</FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          )}
 
           <div className="flex justify-end space-x-4 pt-4">
             <Button type="button" variant="outline">

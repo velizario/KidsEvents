@@ -45,7 +45,6 @@ export const useEvents = () => {
 
   const fetchEvents = async (filters?: {
     category?: string;
-    ageGroup?: string;
     date?: string;
     location?: string;
     search?: string;

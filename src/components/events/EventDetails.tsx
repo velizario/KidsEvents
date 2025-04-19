@@ -275,24 +275,10 @@ const EventDetails = () => {
                         </p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-3">
-                      <Users className="h-5 w-5 text-muted-foreground" />
-                      <div>
-                        <p className="text-sm text-muted-foreground">
-                          Age Group
-                        </p>
-                        <p className="font-medium">
-                          {eventData?.ageGroup || "All ages"}
-                        </p>
-                      </div>
-                    </div>
                   </div>
 
                   <div className="border-t border-border pt-4">
                     <div className="flex justify-between items-center mb-2">
-                      <p className="text-lg font-bold">
-                        {eventData?.price || "Free"}
-                      </p>
                       <p className="text-sm text-muted-foreground">
                         {eventData?.registrations || 0} /{" "}
                         {eventData?.capacity || 0} registered

@@ -10,7 +10,6 @@ import { Event } from "@/types/models";
 const EventsList = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All Events");
-  const [selectedAgeGroup, setSelectedAgeGroup] = useState("All Ages");
   const [showFilters, setShowFilters] = useState(false);
   const [allEvents, setAllEvents] = useState<Event[]>([]);
   const { events, loading, error, fetchEvents } = useEvents();
@@ -21,8 +20,6 @@ const EventsList = () => {
         await fetchEvents({
           category:
             selectedCategory !== "All Events" ? selectedCategory : undefined,
-          ageGroup:
-            selectedAgeGroup !== "All Ages" ? selectedAgeGroup : undefined,
           search: searchQuery || undefined,
         });
       } catch (err) {
@@ -31,7 +28,7 @@ const EventsList = () => {
     };
 
     loadEvents();
-  }, [selectedCategory, selectedAgeGroup, searchQuery]);
+  }, [selectedCategory, searchQuery]);
 
   useEffect(() => {
     if (events) {
@@ -91,8 +88,6 @@ const EventsList = () => {
               <EventFilters
                 selectedCategory={selectedCategory}
                 setSelectedCategory={setSelectedCategory}
-                selectedAgeGroup={selectedAgeGroup}
-                setSelectedAgeGroup={setSelectedAgeGroup}
               />
             </div>
           )}
@@ -131,7 +126,6 @@ const EventsList = () => {
                   date={event.date}
                   time={event.time}
                   location={event.location}
-                  ageGroup={event.ageGroup}
                   category={event.category}
                   imageUrl={event.imageUrl}
                   onRegister={handleRegister}
@@ -149,7 +143,6 @@ const EventsList = () => {
               onClick={() => {
                 setSearchQuery("");
                 setSelectedCategory("All Events");
-                setSelectedAgeGroup("All Ages");
                 fetchEvents();
               }}
             >

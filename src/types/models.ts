@@ -54,7 +54,6 @@ export interface Event {
   location: string;
   category: string;
   capacity: number;
-  isPaid: boolean;
   status: "draft" | "active" | "cancelled" | "completed";
   imageUrl: string;
   organizerId: string;

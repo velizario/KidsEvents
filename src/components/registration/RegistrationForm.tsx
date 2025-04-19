@@ -134,7 +134,7 @@ const RegistrationForm = ({
       if (userError) {
         console.error("Error getting authenticated user:", userError);
         throw new Error(
-          "Failed to get authenticated user: " + userError.message,
+          "Failed to get authenticated user: " + userError.message
         );
       }
 
@@ -168,7 +168,7 @@ const RegistrationForm = ({
         if (parentError) {
           console.error("Error creating parent record:", parentError);
           throw new Error(
-            "Failed to create parent record: " + parentError.message,
+            "Failed to create parent record: " + parentError.message
           );
         }
         console.log("Created new parent record");
@@ -196,12 +196,12 @@ const RegistrationForm = ({
               childId,
               parentId: actualParentId,
               emergencyContact: data.emergencyContact,
-            },
+            }
           );
           console.log(
             "Registration successful for child ID:",
             childId,
-            registration,
+            registration
           );
         }
       } catch (registrationError) {
@@ -220,7 +220,7 @@ const RegistrationForm = ({
       setSubmitError(
         error instanceof Error
           ? error
-          : new Error("Failed to complete registration"),
+          : new Error("Failed to complete registration")
       );
     } finally {
       setIsSubmitting(false);
@@ -478,24 +478,10 @@ const RegistrationForm = ({
                           <p className="font-medium">{event.location}</p>
                         </div>
                       </div>
-                      <div className="flex items-center gap-3">
-                        <Users className="h-5 w-5 text-muted-foreground" />
-                        <div>
-                          <p className="text-sm text-muted-foreground">
-                            Age Group
-                          </p>
-                          <p className="font-medium">{event.ageGroup}</p>
-                        </div>
-                      </div>
+                      <div className="flex items-center gap-3"></div>
                     </div>
 
                     <div className="border-t border-border pt-4">
-                      <div className="flex justify-between items-center">
-                        <p className="text-sm text-muted-foreground">
-                          Price per child
-                        </p>
-                        <p className="font-medium">{event.price}</p>
-                      </div>
                       <div className="flex justify-between items-center mt-2">
                         <p className="text-sm text-muted-foreground">
                           Children
@@ -503,15 +489,6 @@ const RegistrationForm = ({
                         <p className="font-medium">
                           {form.getValues().selectedExistingChildIds?.length ||
                             0}
-                        </p>
-                      </div>
-                      <div className="flex justify-between items-center mt-2 text-lg font-bold">
-                        <p>Total</p>
-                        <p>
-                          $
-                          {parseInt(event.price?.replace("$", "") || "0") *
-                            (form.getValues().selectedExistingChildIds
-                              ?.length || 0)}
                         </p>
                       </div>
                     </div>

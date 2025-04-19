@@ -24,7 +24,7 @@ const EventFormWrapper = () => {
 
       if (!organizerId) {
         throw new Error(
-          "You must be logged in as an organizer to create events",
+          "You must be logged in as an organizer to create events"
         );
       }
 
@@ -35,13 +35,8 @@ const EventFormWrapper = () => {
         date: data.date.toISOString().split("T")[0],
         time: "10:00:00", // Default time if not provided
         location: data.location,
-        ageGroup: data.ageGroups
-          .map((group) => `${group.minAge}-${group.maxAge}`)
-          .join(", "),
         category: data.category,
         capacity: parseInt(data.capacity),
-        price: data.isPaid ? data.price : "0",
-        isPaid: data.isPaid,
         status: "active" as const,
         imageUrl:
           "https://images.unsplash.com/photo-1472162072942-cd5147eb3902?w=800&q=80",
@@ -58,7 +53,7 @@ const EventFormWrapper = () => {
 
       // Redirect to events management after a short delay
       setTimeout(() => {
-        navigate("/events/manage");
+        navigate("/organizer/dashboard");
       }, 2000);
     } catch (err) {
       console.error("Error creating event:", err);

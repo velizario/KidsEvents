@@ -44,7 +44,7 @@ const OrganizerProfile = () => {
         // Fetch organizer profile
         const organizerData = await authAPI.getUserProfile(
           organizerId,
-          "organizer",
+          "organizer"
         );
         setOrganizer(organizerData as Organizer);
 
@@ -68,10 +68,10 @@ const OrganizerProfile = () => {
 
   // Filter events to show upcoming and past separately
   const upcomingEvents = events.filter(
-    (event) => event.status === "active" || event.status === "draft",
+    (event) => event.status === "active" || event.status === "draft"
   );
   const pastEvents = events.filter(
-    (event) => event.status === "completed" || event.status === "cancelled",
+    (event) => event.status === "completed" || event.status === "cancelled"
   );
 
   if (loading) {
@@ -210,14 +210,6 @@ const OrganizerProfile = () => {
                                 <Calendar className="h-3 w-3 mr-1" />
                                 {event.date}
                               </div>
-                              <div className="mt-2 flex items-center gap-2">
-                                <Badge variant="outline">
-                                  {event.category}
-                                </Badge>
-                                <span className="text-xs text-muted-foreground">
-                                  {event.ageGroup}
-                                </span>
-                              </div>
                               <Button
                                 variant="link"
                                 size="sm"
@@ -265,14 +257,6 @@ const OrganizerProfile = () => {
                               <div className="flex items-center text-sm text-muted-foreground mt-1">
                                 <Calendar className="h-3 w-3 mr-1" />
                                 {event.date}
-                              </div>
-                              <div className="mt-2 flex items-center gap-2">
-                                <Badge variant="outline">
-                                  {event.category}
-                                </Badge>
-                                <span className="text-xs text-muted-foreground">
-                                  {event.ageGroup}
-                                </span>
                               </div>
                               <Button
                                 variant="link"
@@ -335,7 +319,11 @@ const OrganizerProfile = () => {
                                 {[...Array(5)].map((_, i) => (
                                   <Star
                                     key={i}
-                                    className={`h-4 w-4 ${i < review.rating ? "text-yellow-500 fill-yellow-500" : "text-muted"}`}
+                                    className={`h-4 w-4 ${
+                                      i < review.rating
+                                        ? "text-yellow-500 fill-yellow-500"
+                                        : "text-muted"
+                                    }`}
                                   />
                                 ))}
                                 <span className="text-xs text-muted-foreground ml-2">
@@ -408,7 +396,13 @@ const OrganizerProfile = () => {
                         <p className="text-sm text-muted-foreground">Address</p>
                         <p className="font-medium">
                           {organizer.address
-                            ? `${organizer.address}${organizer.city ? `, ${organizer.city}` : ""}${organizer.state ? `, ${organizer.state}` : ""}${organizer.zipCode ? ` ${organizer.zipCode}` : ""}`
+                            ? `${organizer.address}${
+                                organizer.city ? `, ${organizer.city}` : ""
+                              }${
+                                organizer.state ? `, ${organizer.state}` : ""
+                              }${
+                                organizer.zipCode ? ` ${organizer.zipCode}` : ""
+                              }`
                             : "Address not provided"}
                         </p>
                       </div>

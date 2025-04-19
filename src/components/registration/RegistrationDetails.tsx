@@ -240,29 +240,9 @@ const RegistrationDetails = () => {
                         <p>{registrationData.registrationDate}</p>
                       </div>
                       <div>
-                        <p className="text-sm text-muted-foreground">Price</p>
-                        <p className="font-medium">{registrationData.price}</p>
-                      </div>
-                      <div>
                         <p className="text-sm text-muted-foreground">
                           Payment Status
                         </p>
-                        <Badge
-                          variant="outline"
-                          className={
-                            registrationData.paymentStatus === "paid"
-                              ? "bg-green-50 text-green-700"
-                              : "bg-yellow-50 text-yellow-700"
-                          }
-                        >
-                          {registrationData.paymentStatus === "paid" ? (
-                            <>
-                              <Check className="h-3 w-3 mr-1" /> Paid
-                            </>
-                          ) : (
-                            <>Pending</>
-                          )}
-                        </Badge>
                       </div>
                     </div>
                   </div>

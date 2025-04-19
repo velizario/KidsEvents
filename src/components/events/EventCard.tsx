@@ -19,7 +19,6 @@ interface EventCardProps {
   date?: string;
   time?: string;
   location?: string;
-  ageGroup?: string;
   category?: string;
   imageUrl?: string;
   onRegister?: (id: string) => void;
@@ -32,7 +31,6 @@ const EventCard = ({
   date = "July 15-19, 2023",
   time = "9:00 AM - 12:00 PM",
   location = "Community Arts Center",
-  ageGroup = "7-12 years",
   category = "Arts & Crafts",
   imageUrl = "https://images.unsplash.com/photo-1551966775-a4ddc8df052b?w=600&q=80",
   onRegister = () => console.log("Register clicked"),
@@ -75,10 +73,6 @@ const EventCard = ({
           <div className="flex items-center gap-2">
             <MapPin className="h-4 w-4 text-muted-foreground" />
             <span className="truncate">{location}</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Users className="h-4 w-4 text-muted-foreground" />
-            <span>{ageGroup}</span>
           </div>
         </div>
       </CardContent>

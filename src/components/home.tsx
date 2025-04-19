@@ -137,7 +137,6 @@ function Home() {
                   date={event.date}
                   time={event.time}
                   location={event.location}
-                  ageGroup={event.ageGroup}
                   category={event.category}
                   imageUrl={event.imageUrl}
                 />

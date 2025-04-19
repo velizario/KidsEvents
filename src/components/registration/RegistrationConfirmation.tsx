@@ -52,7 +52,7 @@ const RegistrationConfirmation = () => {
         setError(
           err instanceof Error
             ? err
-            : new Error("Failed to load confirmation details"),
+            : new Error("Failed to load confirmation details")
         );
       } finally {
         setLoading(false);
@@ -113,17 +113,6 @@ const RegistrationConfirmation = () => {
               />
             </div>
             <CardContent className="p-6">
-              <div className="flex justify-between items-start mb-4">
-                <div>
-                  <h2 className="text-2xl font-bold mb-2">{event.title}</h2>
-                  <Badge className="mb-2">{event.category}</Badge>
-                </div>
-                <div className="text-right">
-                  <p className="text-lg font-bold">{event.price}</p>
-                  <p className="text-sm text-muted-foreground">per child</p>
-                </div>
-              </div>
-
               <p className="text-muted-foreground mb-6">{event.description}</p>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -148,13 +137,6 @@ const RegistrationConfirmation = () => {
                     <p className="font-medium">{event.location}</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-3">
-                  <Users className="h-5 w-5 text-muted-foreground" />
-                  <div>
-                    <p className="text-sm text-muted-foreground">Age Group</p>
-                    <p className="font-medium">{event.ageGroup}</p>
-                  </div>
-                </div>
               </div>
             </CardContent>
           </Card>
@@ -165,17 +147,6 @@ const RegistrationConfirmation = () => {
             <h3 className="text-xl font-semibold mb-4">Registration Details</h3>
 
             <div className="space-y-4">
-              <div>
-                <p className="text-sm text-muted-foreground">
-                  Confirmation Code
-                </p>
-                <p className="font-mono text-lg font-bold">
-                  {registration?.confirmationCode || "EVT-2023-1234"}
-                </p>
-              </div>
-
-              <Separator />
-
               <div>
                 <p className="text-sm text-muted-foreground mb-2">
                   Registration Status
@@ -189,18 +160,6 @@ const RegistrationConfirmation = () => {
               </div>
 
               <Separator />
-
-              <div>
-                <p className="text-sm text-muted-foreground mb-2">
-                  Payment Status
-                </p>
-                <Badge
-                  variant="outline"
-                  className="bg-green-50 text-green-700 border-green-200"
-                >
-                  {event?.isPaid ? "Paid" : "Free Event"}
-                </Badge>
-              </div>
             </div>
           </CardContent>
           <CardFooter className="bg-muted/50 p-6">
