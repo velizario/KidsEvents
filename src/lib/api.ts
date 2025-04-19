@@ -1,5 +1,11 @@
 import { supabase } from "./supabase";
 import {
+  transformE164ToBulgarianLocal,
+  transformBulgarianMobileToE164,
+} from "./utils";
+
+import log from "../lib/logger";
+import {
   convertObjectToCamelCase,
   convertObjectToSnakeCase,
 } from "./case-converter";
@@ -21,6 +27,7 @@ export const authAPI = {
     password: string,
     userData: Partial<User>
   ) => {
+    log.debug("Registering new user:", email, userData);
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -32,7 +39,9 @@ export const authAPI = {
     if (error) throw error;
 
     // Create profile in the appropriate table based on user type
+
     if (userData.userType === "parent") {
+      log.debug("Creating parent profile:", userData);
       await supabase.from("parents").insert(
         convertObjectToSnakeCase({
           id: data.user?.id,
@@ -40,6 +49,7 @@ export const authAPI = {
         })
       );
     } else {
+      log.debug("Creating organizer profile:", userData);
       await supabase.from("organizers").insert(
         convertObjectToSnakeCase({
           id: data.user?.id,
@@ -56,6 +66,7 @@ export const authAPI = {
 
   // Login user
   login: async (email: string, password: string) => {
+    log.debug("Logging in user:", email);
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
@@ -67,12 +78,14 @@ export const authAPI = {
 
   // Logout user
   logout: async () => {
+    log.debug("Logging out user");
     const { error } = await supabase.auth.signOut();
     if (error) throw error;
   },
 
   // Get current user
   getCurrentUser: async () => {
+    log.debug("Fetching current user");
     const { data, error } = await supabase.auth.getUser();
     if (error) throw error;
     return data.user;
@@ -83,6 +96,7 @@ export const authAPI = {
     const table = userType === "parent" ? "parents" : "organizers";
     try {
       // First check if the user exists
+      log.debug(`Checking if ${userType} exists with ID:`, userId);
       const { data: checkData, error: checkError } = await supabase
         .from(table)
         .select("id")
@@ -97,17 +111,18 @@ export const authAPI = {
 
       // If multiple users found (shouldn't happen), log warning and use first one
       if (checkData.length > 1) {
-        console.warn(
+        log.warn(
           `Multiple ${userType} profiles found with id: ${userId}. Using first one.`
         );
       }
 
       // Get the auth user data to retrieve phone number
+      log.debug(`Fetching auth user data for ID:`, userId);
       const { data: authUser, error: authUserError } =
         await supabase.auth.admin.getUserById(userId);
 
       if (authUserError) {
-        console.error("Error fetching auth user:", authUserError);
+        log.error("Error fetching auth user:", authUserError);
       }
 
       // Get the full user data
@@ -115,6 +130,7 @@ export const authAPI = {
 
       if (userType === "parent") {
         // For parents, also fetch their children
+        log.debug(`Fetching parent profile with children for ID:`, userId);
         const { data, error } = await supabase
           .from(table)
           .select("*")
@@ -125,18 +141,16 @@ export const authAPI = {
         if (error) throw error;
 
         // Get children data for this parent
+        log.debug(`Fetching children for parent ID:`, userId);
         const { data: childrenData, error: childrenError } = await supabase
           .from("children")
           .select("*")
           .eq("parent_id", userId);
 
         if (childrenError) {
-          console.error("Error fetching children:", childrenError);
+          log.error("Error fetching children:", childrenError);
           // Continue with parent data even if children fetch fails
         }
-
-        // Import the phone number transformation function
-        const { transformE164ToBulgarianLocal } = await import("./utils");
 
         // Add children and phone to parent data
         userData = {
@@ -148,12 +162,13 @@ export const authAPI = {
           lastName: authUser?.user?.user_metadata?.lastName || "",
         };
 
-        console.log("Fetched parent profile with children:", {
+        log.debug("Fetched parent profile with children:", {
           parentId: userId,
           childrenCount: childrenData?.length || 0,
         });
       } else {
         // For organizers, just get their data
+        log.debug(`Fetching organizer profile for ID:`, userId);
         const { data, error } = await supabase
           .from(table)
           .select("*")
@@ -164,6 +179,7 @@ export const authAPI = {
         if (error) throw error;
 
         // Import the phone number transformation function
+        log.debug(`Fetching organizer profile for ID:`, userId);
         const { transformE164ToBulgarianLocal } = await import("./utils");
 
         // Add user data from auth user
@@ -178,7 +194,7 @@ export const authAPI = {
 
       return convertObjectToCamelCase(userData);
     } catch (error) {
-      console.error(`Error fetching ${userType} profile:`, error);
+      log.error(`Error fetching ${userType} profile:`, error);
       throw error;
     }
   },
@@ -192,15 +208,14 @@ export const authAPI = {
     deletedChildrenIds?: string[]
   ) => {
     // Log the children data being received
-    console.log("Children data received in updateUserProfile:", childrenData);
-    console.log("Deleted children IDs:", deletedChildrenIds);
+    log.debug("Children data received in updateUserProfile:", childrenData);
+    log.debug("Deleted children IDs:", deletedChildrenIds);
 
     // Start a Supabase transaction
     const table = userType === "parent" ? "parents" : "organizers";
 
     try {
       // Import the phone number transformation function
-      const { transformBulgarianMobileToE164 } = await import("./utils");
 
       // Extract user metadata fields to update in auth.users
       const { phone, firstName, lastName, email, ...profileData } =
@@ -225,21 +240,19 @@ export const authAPI = {
         if (email) {
           updateData.email = email;
         }
-
+        log.debug("Updating auth user data:", updateData);
         const { error: authUpdateError } = await supabase.auth.updateUser(
           updateData
         );
 
         if (authUpdateError) {
-          console.error(
-            "Error updating user data in auth user:",
-            authUpdateError
-          );
+          log.error("Error updating user data in auth user:", authUpdateError);
           throw authUpdateError;
         }
       }
 
       // 1. Update the user profile (without phone as it's now in auth.users)
+      log.debug("Updating user profile in database:", profileData);
       const { data, error } = await supabase
         .from(table)
         .update(convertObjectToSnakeCase(profileData))
@@ -251,8 +264,7 @@ export const authAPI = {
       if (userType === "parent") {
         // 2a. Delete children if any IDs are provided for deletion
         if (deletedChildrenIds && deletedChildrenIds.length > 0) {
-          console.log("Deleting children with IDs:", deletedChildrenIds);
-
+          log.debug("Deleting children with IDs:", deletedChildrenIds);
           const { error: deleteError } = await supabase
             .from("children")
             .delete()
@@ -260,18 +272,18 @@ export const authAPI = {
             .eq("parent_id", userId);
 
           if (deleteError) {
-            console.error("Error deleting children:", deleteError);
+            log.error("Error deleting children:", deleteError);
             throw deleteError;
           }
 
-          console.log(
+          log.debug(
             `Successfully deleted ${deletedChildrenIds.length} children`
           );
         }
 
         // 2b. Update and insert children in bulk if provided
         if (childrenData && childrenData.length > 0) {
-          console.log("Processing children data in bulk", childrenData);
+          log.debug("Processing children data in bulk", childrenData);
 
           // Separate children into those to update and those to insert
           const childrenToUpdate = childrenData.filter((child) => child.id);
@@ -279,9 +291,7 @@ export const authAPI = {
 
           // Process updates in bulk if there are any
           if (childrenToUpdate.length > 0) {
-            console.log(
-              `Updating ${childrenToUpdate.length} existing children`
-            );
+            log.debug(`Updating ${childrenToUpdate.length} existing children`);
 
             // Use upsert with onConflict to update multiple children in one request
             const childrenDataToUpdate = childrenToUpdate.map((child) =>
@@ -291,21 +301,21 @@ export const authAPI = {
               })
             );
 
-            console.log("Children data to update:", childrenDataToUpdate);
+            log.debug("Children data to update:", childrenDataToUpdate);
 
             const { error: updateError } = await supabase
               .from("children")
               .upsert(childrenDataToUpdate, { onConflict: "id" });
 
             if (updateError) {
-              console.error("Error updating children:", updateError);
+              log.error("Error updating children:", updateError);
               throw updateError;
             }
           }
 
           // Process inserts in bulk if there are any
           if (childrenToInsert.length > 0) {
-            console.log(`Inserting ${childrenToInsert.length} new children`);
+            log.debug(`Inserting ${childrenToInsert.length} new children`);
 
             const childrenDataToInsert = childrenToInsert.map((child) =>
               convertObjectToSnakeCase({
@@ -320,7 +330,7 @@ export const authAPI = {
               child.id = crypto.randomUUID();
             }
 
-            console.log(
+            log.debug(
               "Children data to insert with IDs:",
               childrenDataToInsert
             );
@@ -330,18 +340,18 @@ export const authAPI = {
               .insert(childrenDataToInsert);
 
             if (insertError) {
-              console.error("Error inserting children:", insertError);
+              log.error("Error inserting children:", insertError);
               throw insertError;
             }
           }
         }
       } else {
-        console.log("No children operations needed for organizer profile");
+        log.debug("No children operations needed for organizer profile");
       }
 
       return convertObjectToCamelCase(data);
     } catch (error) {
-      console.error("Error in updateUserProfile:", error);
+      log.error("Error in updateUserProfile:", error);
       throw error;
     }
   },
@@ -356,7 +366,7 @@ export const parentAPI = {
   ) => {
     // Generate a UUID for the new child
     const childId = crypto.randomUUID();
-
+    log.debug("Adding child with ID:", childId);
     const { data, error } = await supabase
       .from("children")
       .insert(
@@ -374,6 +384,7 @@ export const parentAPI = {
 
   // Update child information
   updateChild: async (childId: string, childData: Partial<Child>) => {
+    log.debug("Updating child with ID:", childId);
     const { data, error } = await supabase
       .from("children")
       .update(convertObjectToSnakeCase(childData))
@@ -386,6 +397,7 @@ export const parentAPI = {
 
   // Delete a child
   deleteChild: async (childId: string) => {
+    log.debug("Deleting child with ID:", childId);
     const { error } = await supabase
       .from("children")
       .delete()
@@ -397,6 +409,7 @@ export const parentAPI = {
 
   // Get all children for a parent
   getChildren: async (parentId: string) => {
+    log.debug("Fetching children for parent ID:", parentId);
     const { data, error } = await supabase
       .from("children")
       .select("*")
@@ -408,6 +421,7 @@ export const parentAPI = {
 
   // Get a specific child
   getChild: async (childId: string) => {
+    log.debug("Fetching child with ID:", childId);
     const { data, error } = await supabase
       .from("children")
       .select("*")
@@ -420,6 +434,7 @@ export const parentAPI = {
 
   // Get parent's registrations
   getRegistrations: async (parentId: string) => {
+    log.debug("Fetching registrations for parent ID:", parentId);
     const { data, error } = await supabase
       .from("registrations")
       .select(
@@ -443,6 +458,7 @@ export const eventAPI = {
     organizerId: string,
     eventData: Omit<Event, "id" | "organizerId" | "createdAt" | "updatedAt">
   ) => {
+    log.debug("Creating new event for organizer ID:", organizerId);
     const { data, error } = await supabase
       .from("events")
       .insert(
@@ -459,6 +475,7 @@ export const eventAPI = {
 
   // Update an event
   updateEvent: async (eventId: string, eventData: Partial<Event>) => {
+    log.debug("Updating event with ID:", eventId);
     const { data, error } = await supabase
       .from("events")
       .update(convertObjectToSnakeCase(eventData))
@@ -471,6 +488,7 @@ export const eventAPI = {
 
   // Delete an event
   deleteEvent: async (eventId: string) => {
+    log.debug("Deleting event with ID:", eventId);
     const { error } = await supabase.from("events").delete().eq("id", eventId);
 
     if (error) throw error;
@@ -519,6 +537,7 @@ export const eventAPI = {
 
   // Get events by organizer
   getEventsByOrganizer: async (organizerId: string) => {
+    log.debug("Fetching events for organizer ID:", organizerId);
     const { data, error } = await supabase
       .from("events")
       .select("*")
@@ -531,6 +550,7 @@ export const eventAPI = {
   // Get a specific event
   getEvent: async (eventId: string) => {
     try {
+      log.debug("Fetching event with ID:", eventId);
       const { data, error } = await supabase
         .from("events")
         .select(
@@ -545,13 +565,14 @@ export const eventAPI = {
       if (error) throw error;
       return data ? convertObjectToCamelCase(data) : null;
     } catch (error) {
-      console.error("Error fetching event:", error);
+      log.error("Error fetching event:", error);
       return null;
     }
   },
 
   // Get event participants
   getEventParticipants: async (eventId: string) => {
+    log.debug("Fetching participants for event:", eventId);
     const { data, error } = await supabase
       .from("registrations")
       .select(
@@ -566,12 +587,17 @@ export const eventAPI = {
 
     // If we have data, fetch the parent information separately for each registration
     if (data && data.length > 0) {
+      log.debug("Fetched registrations:", data);
       const registrationsWithParents = await Promise.all(
         data.map(async (registration) => {
           let parentData = null;
           let parentError = null;
 
           try {
+            log.debug(
+              "Fetching parent data for registration ID:",
+              registration.id
+            );
             const { data: fetchedParent, error } = await supabase
               .from("parents")
               .select("id, first_name, last_name, phone")
@@ -581,12 +607,12 @@ export const eventAPI = {
             parentData = fetchedParent;
             parentError = error;
           } catch (err) {
-            console.error("Error fetching parent data:", err);
+            log.error("Error fetching parent data:", err);
             parentError = err;
           }
 
           if (parentError) {
-            console.error("Error fetching parent:", parentError);
+            log.error("Error fetching parent:", parentError);
             return { ...registration, parent: null };
           }
 
@@ -613,6 +639,7 @@ export const registrationAPI = {
   ) => {
     try {
       // First get the event to check capacity
+      log.debug("Fetching event with ID:", eventId);
       const { data: event, error: eventError } = await supabase
         .from("events")
         .select("*")
@@ -623,6 +650,7 @@ export const registrationAPI = {
 
       if (event.capacity > 0) {
         // Check if we've reached capacity by counting existing registrations
+        log.debug("Checking event capacity for event ID:", eventId);
         const { count, error: countError } = await supabase
           .from("registrations")
           .select("*", { count: "exact", head: true })
@@ -642,6 +670,10 @@ export const registrationAPI = {
       // Check if child record exists and create if needed
       try {
         // First check if the child record already exists
+        log.debug(
+          "Checking if child exists with ID:",
+          registrationData.childId
+        );
         const { data: existingChild, error: checkChildError } = await supabase
           .from("children")
           .select("id")
@@ -650,6 +682,7 @@ export const registrationAPI = {
         // If no child exists or we get an error
         if (checkChildError || !existingChild || existingChild.length === 0) {
           // Child doesn't exist, create it
+          log.debug("Creating child record with ID:", registrationData.childId);
           const { error: childError } = await supabase.from("children").insert({
             id: registrationData.childId,
             parent_id: registrationData.parentId,
@@ -659,12 +692,12 @@ export const registrationAPI = {
           });
 
           if (childError) {
-            console.error("Error creating child record:", childError);
+            log.error("Error creating child record:", childError);
             throw childError;
           }
         }
       } catch (childError) {
-        console.error("Error handling child record:", childError);
+        log.error("Error handling child record:", childError);
         throw new Error(
           "Failed to create child record: " + (childError.message || childError)
         );
@@ -673,6 +706,10 @@ export const registrationAPI = {
       // Check if parent record exists and create if needed
       try {
         // First check if the parent record already exists
+        log.debug(
+          "Checking if parent exists with ID:",
+          registrationData.parentId
+        );
         const { data: existingParent, error: checkParentError } = await supabase
           .from("parents")
           .select("id")
@@ -685,18 +722,24 @@ export const registrationAPI = {
           existingParent.length === 0
         ) {
           // Parent doesn't exist, create it
+          log.debug(
+            "Creating parent record with ID:",
+            registrationData.parentId
+          );
+          // Create the parent record with a demo phone number
+          // In a real app, this would be the parent's actual phone number
           const { error: parentError } = await supabase.from("parents").insert({
             id: registrationData.parentId,
             phone: "555-123-4567",
           });
 
           if (parentError) {
-            console.error("Error creating parent record:", parentError);
+            log.error("Error creating parent record:", parentError);
             throw parentError;
           }
         }
       } catch (parentError) {
-        console.error("Error handling parent record:", parentError);
+        log.error("Error handling parent record:", parentError);
         throw new Error(
           "Failed to create parent record: " +
             (parentError.message || parentError)
@@ -704,6 +747,7 @@ export const registrationAPI = {
       }
 
       // Create registration
+      log.debug("Creating registration for event ID:", eventId);
       const { data, error } = await supabase
         .from("registrations")
         .insert(
@@ -721,7 +765,7 @@ export const registrationAPI = {
 
       return convertObjectToCamelCase(data[0]);
     } catch (error) {
-      console.error("Error in registerForEvent:", error);
+      log.error("Error in registerForEvent:", error);
       throw error;
     }
   },
@@ -729,6 +773,7 @@ export const registrationAPI = {
   // Cancel a registration
   cancelRegistration: async (registrationId: string) => {
     // Get the registration to get the event ID
+    log.debug("Fetching registration with ID:", registrationId);
     const { data: registration } = await supabase
       .from("registrations")
       .select("*")
@@ -736,6 +781,7 @@ export const registrationAPI = {
       .single();
 
     // Update registration status
+    log.debug("Updating registration status to cancelled:", registrationId);
     const { data, error } = await supabase
       .from("registrations")
       .update(
@@ -753,6 +799,7 @@ export const registrationAPI = {
 
   // Get a specific registration
   getRegistration: async (registrationId: string) => {
+    log.debug("Fetching registration with ID:", registrationId);
     const { data, error } = await supabase
       .from("registrations")
       .select(
@@ -773,6 +820,7 @@ export const registrationAPI = {
       let parentError = null;
 
       try {
+        log.debug("Fetching parent data for registration ID:", registrationId);
         const { data: fetchedParent, error } = await supabase
           .from("parents")
           .select("id, first_name, last_name, phone")
@@ -782,12 +830,12 @@ export const registrationAPI = {
         parentData = fetchedParent;
         parentError = error;
       } catch (err) {
-        console.error("Error fetching parent data:", err);
+        log.error("Error fetching parent data:", err);
         parentError = err;
       }
 
       if (parentError) {
-        console.error("Error fetching parent:", parentError);
+        log.error("Error fetching parent:", parentError);
         return convertObjectToCamelCase({ ...data, parent: null });
       }
 
@@ -802,6 +850,7 @@ export const registrationAPI = {
     registrationId: string,
     status: "pending" | "confirmed" | "cancelled"
   ) => {
+    log.debug("Updating registration status:", registrationId, status);
     const { data, error } = await supabase
       .from("registrations")
       .update({ status })
@@ -825,6 +874,7 @@ export const reviewAPI = {
     }
   ) => {
     // First get the event to get the organizer ID
+    log.debug("Fetching event with ID:", eventId);
     const { data: event, error: eventError } = await supabase
       .from("events")
       .select("organizer_id")
@@ -832,7 +882,7 @@ export const reviewAPI = {
       .single();
 
     if (eventError) throw eventError;
-
+    log.debug("Event data:", event);
     const { data, error } = await supabase
       .from("reviews")
       .insert(
@@ -854,6 +904,7 @@ export const reviewAPI = {
 
   // Get reviews for an event
   getEventReviews: async (eventId: string) => {
+    log.debug("Fetching reviews for event ID:", eventId);
     const { data, error } = await supabase
       .from("reviews")
       .select(
@@ -870,6 +921,7 @@ export const reviewAPI = {
 
   // Get reviews for an organizer
   getOrganizerReviews: async (organizerId: string) => {
+    log.debug("Fetching reviews for organizer ID:", organizerId);
     const { data, error } = await supabase
       .from("reviews")
       .select(

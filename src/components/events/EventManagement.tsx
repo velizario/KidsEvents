@@ -112,7 +112,7 @@ const EventManagement = () => {
       try {
         setIsLoadingParticipants(true);
         setParticipantsError(null);
-
+        console.log("Fetching participants for event:", eventId);
         const data = await eventAPI.getEventParticipants(eventId);
 
         // Transform the data to match our Participant interface
@@ -156,6 +156,7 @@ const EventManagement = () => {
     if (!eventId) return;
 
     try {
+      console.log("Deleting event:", eventId);
       await deleteEvent(eventId);
       setDeleteDialogOpen(false);
       navigate("/organizer/dashboard");
@@ -168,6 +169,7 @@ const EventManagement = () => {
   const handleCancelRegistration = async (registrationId: string) => {
     try {
       setIsLoadingParticipants(true);
+      console.log("Canceling registration:", registrationId);
       await registrationAPI.cancelRegistration(registrationId);
 
       // Refresh participants list after cancellation
@@ -218,6 +220,7 @@ const EventManagement = () => {
   const handleConfirmRegistration = async (registrationId: string) => {
     try {
       setIsLoadingParticipants(true);
+      console.log("Confirming registration:", registrationId);
       await registrationAPI.updateRegistrationStatus(
         registrationId,
         "confirmed"
@@ -225,6 +228,7 @@ const EventManagement = () => {
 
       // Refresh participants list after confirmation
       if (eventId) {
+        console.log("Fetching participants after confirmation:", eventId);
         const data = await eventAPI.getEventParticipants(eventId);
 
         // Transform the data to match our Participant interface
@@ -328,6 +332,7 @@ const EventManagement = () => {
 
       // In a real implementation, you would call an API to send emails
       // For now, we'll simulate a successful email send after a delay
+      console.log("Sending email to all participants...");
       await new Promise((resolve) => setTimeout(resolve, 1500));
 
       // Reset form and close dialog
